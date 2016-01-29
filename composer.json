@@ -1,0 +1,23 @@
+{
+	"name": "balbuf/composer-wp",
+	"version": "1.0.0",
+	"description": "Manage WP plugins with composer.",
+	"type": "composer-plugin",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Stephen Beemsterboer",
+			"homepage": "https://github.com/balbuf"
+		}
+	],
+	"autoload": {
+		"psr-4": {"BalBuf\\ComposerWP\\": "src/"}
+	},
+	"extra": {
+		"class": "BalBuf\\ComposerWP\\Plugin"
+	},
+	"require": {
+		"php": "^5.3",
+		"composer-plugin-api": "1.0.0"
+	}
+}
