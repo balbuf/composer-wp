@@ -28,6 +28,7 @@ class SVNRepository extends ComposerRepository {
 	protected $vendors = array(); // vendor name mapping to type
 	protected $util; //svn command utility
 	protected $distUrl;
+	protected $plugin; //the plugin class that instantiated this repository
 	// config defaults
 	protected $repoConfig = array(
 		// base url
@@ -82,6 +83,7 @@ class SVNRepository extends ComposerRepository {
 		$this->loader = new ArrayLoader();
 		// used for svn commands
 		$this->util = new SvnUtil( '', $io, new Config );
+		$this->plugin = $repoConfig['plugin'];
 
 		// parse and store the vendor / package type mappings
 		if ( is_array( $this->repoConfig['types'] ) && count( $this->repoConfig['types'] ) ) {
@@ -168,6 +170,7 @@ class SVNRepository extends ComposerRepository {
 		}
 
 		// base url for the requested set of packages (i.e. the provider)
+		// there should be no trailing slash
 		$providerUrl = $this->providerHash[ $shortName ];
 		$packages = array();
 
@@ -183,7 +186,7 @@ class SVNRepository extends ComposerRepository {
 					if ( $this->io->isVerbose() ) {
 						$this->io->writeError( "Fetching available versions for $name" );
 					}
-					$pkgRaw = $this->util->execute( 'svn ls', $providerUrl . $relPath );
+					$pkgRaw = $this->util->execute( 'svn ls', "$providerUrl/$relPath" );
 				} catch( \RuntimeException $e ) {
 					// @todo maybe don't throw an exception and just pass this one up?
 					throw new \RuntimeException( "SVN Error: Could not retrieve package listing for $name. " . $e->getMessage() );
@@ -194,7 +197,7 @@ class SVNRepository extends ComposerRepository {
 					$version = $this->replaceVersion( $version );
 					// if the version string is empty, we don't take it
 					if ( strlen( $version ) ) {
-						$packages[ $version ] = $relPath . "/$version";
+						$packages[ $version ] = trim( "$relPath/$version", '/' );
 					}
 				}
 			} else {
@@ -227,7 +230,7 @@ class SVNRepository extends ComposerRepository {
 				'type' => $this->vendors[ $vendor ],
 				'source' => array(
 					'type' => 'svn',
-					'url' => $providerUrl,
+					'url' => "$providerUrl/",
 					'reference' => $reference,
 				),
 				'require' => array(
@@ -246,7 +249,7 @@ class SVNRepository extends ComposerRepository {
 			$package->setRepository( $this );
 			// apply a filter to the package object
 			if ( is_callable( $this->repoConfig['package-filter'] ) ) {
-				call_user_func( $this->repoConfig['package-filter'], $package );
+				call_user_func( $this->repoConfig['package-filter'], $package, $this->io, $this->plugin );
 			}
 			// add the package object to the set
 			$this->providers[ $name ][ $version ] = $package;
@@ -295,8 +298,8 @@ class SVNRepository extends ComposerRepository {
 
 		// cycle through the provider path(s)
 		foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
-			// form the url to this provider listing - avoid double slashing
-			$url = $this->repoConfig['url'] . '/' . trim( $path, '/' ) . '/';
+			// form the url to this provider listing - avoid double slashing and no trailing slash
+			$url = rtrim( $this->repoConfig['url'] . '/' . ltrim( $path, '/' ), '/' );
 			// if the path ends with a slash, we grab its subdirectories
 			if ( substr( $path, -1 ) === '/' ) {
 				// try to get a listing of providers
@@ -315,8 +318,7 @@ class SVNRepository extends ComposerRepository {
 						}
 					}
 					$this->providerListing[] = $name;
-					// $url already has a trailing slash
-					$this->providerHash[ $name ] = "$url$name/";
+					$this->providerHash[ $name ] = "$url/$name";
 				}
 			} else {
 				// otherwise we add as-is - the provider name is just the basename of the relative path

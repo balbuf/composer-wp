@@ -60,16 +60,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// the extra data from the composer.jsom
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
-		$extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : array();
+		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : array();
 
 		// add the default repos, if desired
 		$repos = array();
 		// get the user-defined repos first
-		if ( !empty( $extra['repositories'] ) ) {
-			if ( !is_array( $extra['repositories'] ) ) {
+		if ( !empty( $this->extra['repositories'] ) ) {
+			if ( !is_array( $this->extra['repositories'] ) ) {
 				throw new \Exception( '[extra][' . self::extra_field . '][repositories] should be an array of repository definitions.' );
 			}
-			foreach ( $extra['repositories'] as $repo ) {
+			foreach ( $this->extra['repositories'] as $repo ) {
 				// see if this includes definition(s) about the builtin repos
 				$defaults = array_intersect_key( $repo, $this->builtinRepos );
 				// note: this means repo property names should not overlap with builtin repo names
@@ -102,16 +102,17 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
 				$repoConfig = $configClass::getConfig();
 				// replace out the default types based on the composer.json vendor mapping
-				if ( !empty( $extra['types'] ) ) {
+				if ( !empty( $this->extra['vendors'] ) ) {
 					// make sure this property is set
 					$repoConfig += array( 'types' => array() );
-					$repoConfig['types'] = array_replace( $repoConfig['types'], $extra['types'] );
+					$repoConfig['types'] = array_replace( $repoConfig['types'], $this->extra['vendors'] );
 				}
 				// allow config properties to be overridden by composer.json
 				if ( is_array( $definition ) ) {
 					// @todo: any sort of recursion?
 					$repoConfig = array_replace( $repoConfig, $definition );
 				}
+				$repoConfig['plugin'] = $this;
 				// add the repo!
 				$rm->addRepository( $rm->createRepository( $configClass::getRepositoryType(), $repoConfig ) );
 			} else {
@@ -122,6 +123,22 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
 	public function onCommand( CommandEvent $event ) {
 
+	}
+
+	/**
+	 * Get the extra data pertinent to this plugin.
+	 * @return array extra data properties
+	 */
+	public function getExtra() {
+		return $this->extra;
+	}
+
+	/**
+	 * Get the composer object that this plugin is loaded in.
+	 * @return Composer composer instance
+	 */
+	public function getComposer() {
+		return $this->composer;
 	}
 
 }
