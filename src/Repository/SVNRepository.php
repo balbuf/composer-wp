@@ -1,6 +1,6 @@
 <?php
 
-namespace BalBuf\ComposerWP;
+namespace BalBuf\ComposerWP\Repository;
 
 use Composer\Repository\ComposerRepository;
 use Composer\IO\IOInterface;
@@ -22,7 +22,7 @@ use Composer\Semver\VersionParser;
  * as the vendors are "virtual" and used to dictate what
  * type the package will be.
  */
-class WordPressSVNRepository extends ComposerRepository {
+class SVNRepository extends ComposerRepository {
 
 	protected $providersHash; // key providers stored by key for quicker existence check
 	protected $vendors = array(); // vendor name mapping to type
@@ -70,7 +70,7 @@ class WordPressSVNRepository extends ComposerRepository {
 		// @TODO: add event dispatcher?
 		// check url immediately - can't do anything without it
 		if ( empty( $repoConfig['url'] ) || ( $urlParts = parse_url( $repoConfig['url'] ) ) === false || empty( $urlParts['scheme'] ) ) {
-			throw new \UnexpectedValueException( 'Invalid url given for Wordpress SVN repository: ' . $repoConfig['url'] );
+			throw new \UnexpectedValueException( 'Invalid or missing url given for Wordpress SVN repository: ' . ( isset( $repoConfig['url'] ) ? $repoConfig['url'] : '' ) );
 		}
 		// untrailingslashit
 		$repoConfig['url'] = rtrim( $repoConfig['url'], '/' );
@@ -285,7 +285,7 @@ class WordPressSVNRepository extends ComposerRepository {
 			return;
 		}
 		if ( $this->io->isVerbose() ) {
-			$this->io->writeError( "Fetching providers from {$this->url}" );
+			$this->io->writeError( "Fetching providers from {$this->repoConfig['url']}" );
 		}
 
 		// this will be a basic array of provider names

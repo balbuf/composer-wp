@@ -22,13 +22,20 @@ use Composer\Plugin\CommandEvent;
 
 class Plugin implements PluginInterface, EventSubscriberInterface {
 
+	// the plugin properties are defined in this 'extra' field
 	const extra_field = 'composer-wp';
-
 	protected $composer;
 	protected $io;
-	// these are default repos that are named and can be enabled/disabled in composer.json
-	// their configuration options are included from an external file
-	protected $svnRepos;
+	// these are builtin repos that are named and can be enabled/disabled in composer.json
+	// the name maps to a class in Repository\Builtin which defines its config options
+	protected $builtinRepos = array(
+		'plugins' => 'WordPressPluginsRepository',
+		'themes' => '',
+		'core' => '',
+		'develop' => '',
+		'wpcom-themes' => '',
+		'vip-plugins' => '',
+	);
 	// these repos are enabled by default, unless otherwise disabled
 	protected $defaultRepos = array( 'plugins' );
 
@@ -50,8 +57,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// store composer and io objects for reuse
 		$this->composer = $composer;
 		$this->io = $io;
-		// get the builtin and default repo definitions
-		$this->svnRepos = include __DIR__ . '/../inc/builtin-repo-configs.php';
 		// the extra data from the composer.jsom
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
@@ -65,9 +70,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				throw new \Exception( '[extra][' . self::extra_field . '][repositories] should be an array of repository definitions.' );
 			}
 			foreach ( $extra['repositories'] as $repo ) {
-				// see if this includes definition(s) about the default repos
-				$defaults = array_intersect_key( $repo, $this->svnRepos );
-				// note: this means repo property names should not overlap with default repo names
+				// see if this includes definition(s) about the builtin repos
+				$defaults = array_intersect_key( $repo, $this->builtinRepos );
+				// note: this means repo property names should not overlap with builtin repo names
 				if ( count( $defaults ) ) {
 					// add these to the repos array, only if not defined already
 					$repos += $defaults;
@@ -82,19 +87,20 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
 		// the repo manager
 		$rm = $this->composer->getRepositoryManager();
-		// add our repo class as an available one to use
-		$rm->setRepositoryClass( 'wp-svn', '\\' . __NAMESPACE__ . '\WordPressSVNRepository' );
+		// add our repo classes as available ones to use
+		$rm->setRepositoryClass( 'wp-svn', '\\' . __NAMESPACE__ . '\\Repository\\SVNRepository' );
 
 		// create the repos!
 		foreach ( $repos as $name => $definition ) {
-			// is this a default svn repo?
-			if ( isset( $this->svnRepos[ $name ] ) ) {
+			// is this a builtin repo?
+			if ( isset( $this->builtinRepos[ $name ] ) ) {
 				// a falsey value means we will not use this repo
 				if ( !$definition ) {
 					continue;
 				}
-				// grab the default configuration, filling in any missing properties
-				$repoConfig = $this->svnRepos[ $name ];
+				// grab the repo config
+				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
+				$repoConfig = $configClass::getConfig();
 				// replace out the default types based on the composer.json vendor mapping
 				if ( !empty( $extra['types'] ) ) {
 					// make sure this property is set
@@ -107,7 +113,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 					$repoConfig = array_replace( $repoConfig, $definition );
 				}
 				// add the repo!
-				$rm->addRepository( $rm->createRepository( 'wp-svn', $repoConfig ) );
+				$rm->addRepository( $rm->createRepository( $configClass::getRepositoryType(), $repoConfig ) );
 			} else {
 				// @todo handle additional repo types
 			}
