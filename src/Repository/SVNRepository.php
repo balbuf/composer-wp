@@ -209,7 +209,9 @@ class SVNRepository extends ComposerRepository {
 				'source' => array(
 					'type' => 'svn',
 					'url' => "$providerUrl/",
-					'reference' => $reference,
+					// the reference cannot be empty or composer will throw an exception
+					// an empty reference and a single slash are effectively the same
+					'reference' => $reference ?: '/',
 				),
 				'require' => array(
 					'oomphinc/composer-installers-extender' => '~1.0',
