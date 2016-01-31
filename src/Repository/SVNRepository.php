@@ -7,7 +7,7 @@ use Composer\IO\IOInterface;
 use Composer\Config;
 use Composer\EventDispatcher\EventDispatcher;
 use Composer\Package\Loader\ArrayLoader;
-use Composer\Util\Svn as SvnUtil;
+use BalBuf\ComposerWP\Util\Svn as SvnUtil;
 use Composer\Package\PackageInterface;
 use Composer\DependencyResolver\Pool;
 use Composer\Semver\VersionParser;
@@ -24,9 +24,9 @@ use Composer\Semver\VersionParser;
  */
 class SVNRepository extends ComposerRepository {
 
+	static protected $SvnUtil;
 	protected $providersHash; // key providers stored by key for quicker existence check
 	protected $vendors = array(); // vendor name mapping to type
-	protected $util; //svn command utility
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
 	// config defaults
@@ -81,8 +81,6 @@ class SVNRepository extends ComposerRepository {
 
 		$this->io = $io;
 		$this->loader = new ArrayLoader();
-		// used for svn commands
-		$this->util = new SvnUtil( '', $io, new Config );
 		$this->plugin = $repoConfig['plugin'];
 
 		// parse and store the vendor / package type mappings
@@ -97,6 +95,11 @@ class SVNRepository extends ComposerRepository {
 			}
 		} else {
 			throw new \UnexpectedValueException( 'Vendor / package type mapping is required.' );
+		}
+
+		// set the SvnUtil for all instantiated classes to use
+		if ( !isset( self::$SvnUtil ) ) {
+			self::$SvnUtil = new SvnUtil( $io );
 		}
 	}
 
@@ -186,13 +189,13 @@ class SVNRepository extends ComposerRepository {
 					if ( $this->io->isVerbose() ) {
 						$this->io->writeError( "Fetching available versions for $name" );
 					}
-					$pkgRaw = $this->util->execute( 'svn ls', "$providerUrl/$relPath" );
+					$pkgRaw = self::$SvnUtil->execute( 'ls', "$providerUrl/$relPath" );
 				} catch( \RuntimeException $e ) {
 					// @todo maybe don't throw an exception and just pass this one up?
 					throw new \RuntimeException( "SVN Error: Could not retrieve package listing for $name. " . $e->getMessage() );
 				}
 				// check the versions and add any good ones to the set
-				foreach ( $this->parseSvnList( $pkgRaw ) as $version ) {
+				foreach ( SvnUtil::parseSvnList( $pkgRaw ) as $version ) {
 					// format the version identifier to be composer-compatible
 					$version = $this->replaceVersion( $version );
 					// if the version string is empty, we don't take it
@@ -304,12 +307,12 @@ class SVNRepository extends ComposerRepository {
 			if ( substr( $path, -1 ) === '/' ) {
 				// try to get a listing of providers
 				try {
-					$providersRaw = $this->util->execute( 'svn ls', $url );
+					$providersRaw = self::$SvnUtil->execute( 'ls', $url );
 				} catch( \RuntimeException $e ) {
 					throw new \RuntimeException( "SVN Error: Could not retrieve provider listing from $url " . $e->getMessage() );
 				}
 				// cycle through to remove exclusions
-				foreach ( $this->parseSvnList( $providersRaw ) as $name ) {
+				foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
 					// is there an exclude pattern?
 					if ( !empty( $this->repoConfig['provider-exclude'] ) ) {
 						// should we exclude this provider?
@@ -329,25 +332,6 @@ class SVNRepository extends ComposerRepository {
 				$this->providerHash[ $name ] = $url;
 			}
 		}
-	}
-
-	/**
-	 * Take a full `svn ls` response and parse it into an array of items.
-	 * @todo  move this to a util class
-	 * @param  string $response response from svn
-	 * @return array           items returned (could be empty)
-	 */
-	protected function parseSvnList( $response ) {
-		$list = array();
-		// break on space, newline, or forward slash
-		// leaving us with perfectly trimmed names
-		$token = " \n\r/";
-		$item = strtok( $response, $token );
-		while ( $item !== false ) {
-			$list[] = $item;
-			$item = strtok( $token );
-		}
-		return $list;
 	}
 
 	/**
