@@ -8,11 +8,8 @@ namespace BalBuf\ComposerWP\Repository\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
-use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use Composer\Package\Link;
-use Composer\Semver\Constraint\Constraint;
 
 class WordPressPluginsRepository extends SVNRepositoryConfig {
 
@@ -30,19 +27,6 @@ class WordPressPluginsRepository extends SVNRepositoryConfig {
 	 */
 	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
 		list( $vendor, $shortName ) = explode( '/',  $package->getName() );
-		// add "replaces" array for any other vendors that this repository supports
-		if ( count( $vendors = $package->getRepository()->getVendors() ) > 1 ) {
-			$replaces = array();
-			$constraint = new Constraint( '=', $package->getVersion() );
-			foreach ( $vendors as $vendorName => $type ) {
-				// it doesn't replace itself
-				if ( $vendorName === $vendor ) {
-					continue;
-				}
-				$replaces[] = new Link( $package->getName(), "$vendorName/$shortName", $constraint, "'$type' alias for", $package->getPrettyVersion() );
-			}
-			$package->setReplaces( $replaces );
-		}
 		// try to get the plugin info - may return an array or null/false
 		if ( $info = static::getPluginInfo( $shortName, $io ) ) {
 			// set the dist info
@@ -95,9 +79,9 @@ class WordPressPluginsRepository extends SVNRepositoryConfig {
 	static function getPluginInfo( $plugin, IOInterface $io ) {
 		if ( !array_key_exists( $plugin, static::$pluginInfo ) ) {
 			// ask the API about this plugin
-			$url = 'https://api.wordpress.org/plugins/info/1.0/' . urldecode( $plugin ) . '.json';
+			$url = 'https://api.wordpress.org/plugins/info/1.0/' . urlencode( $plugin ) . '.json';
 			if ( $io->isVerbose() ) {
-				$io->write( "Requesting more information about $plugin: $url" );
+				$io->write( "Requesting more information about $plugin plugin: $url" );
 			}
 			$response = file_get_contents( $url );
 			// was the retrieval successful?

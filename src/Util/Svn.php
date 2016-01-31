@@ -6,6 +6,10 @@ use Composer\IO\IOInterface;
 use Composer\Util\Svn as SvnUtil;
 use Composer\Config;
 
+/**
+ * Light wrapper for \Composer\Util\Svn that provides
+ * additional utilities.
+ */
 class Svn {
 
 	protected $util;

@@ -11,6 +11,8 @@ use BalBuf\ComposerWP\Util\Svn as SvnUtil;
 use Composer\Package\PackageInterface;
 use Composer\DependencyResolver\Pool;
 use Composer\Semver\VersionParser;
+use Composer\Package\Link;
+use Composer\Semver\Constraint\Constraint;
 
 /**
  * Mimicking a composer repository that has providers.
@@ -248,8 +250,22 @@ class SVNRepository extends ComposerRepository {
 			if ( !empty( $this->repoConfig['package-defaults'] ) ) {
 				$data = array_replace( $data, $this->repoConfig['package-defaults'] );
 			}
+			// create the package object
 			$package = $this->createPackage( $data, 'Composer\Package\CompletePackage' );
 			$package->setRepository( $this );
+			// add "replaces" array for any other vendors that this repository supports
+			if ( count( $this->vendors ) > 1 ) {
+				$replaces = array();
+				$constraint = new Constraint( '=', $package->getVersion() );
+				foreach ( $this->vendors as $vendorName => $type ) {
+					// it doesn't replace itself
+					if ( $vendorName === $vendor ) {
+						continue;
+					}
+					$replaces[] = new Link( $package->getName(), "$vendorName/$shortName", $constraint, "'$type' alias for", $package->getPrettyVersion() );
+				}
+				$package->setReplaces( $replaces );
+			}
 			// apply a filter to the package object
 			if ( is_callable( $this->repoConfig['package-filter'] ) ) {
 				call_user_func( $this->repoConfig['package-filter'], $package, $this->io, $this->plugin );

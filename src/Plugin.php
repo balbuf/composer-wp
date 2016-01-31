@@ -30,7 +30,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	// the name maps to a class in Repository\Builtin which defines its config options
 	protected $builtinRepos = array(
 		'plugins' => 'WordPressPluginsRepository',
-		'themes' => '',
+		'themes' => 'WordPressThemesRepository',
 		'core' => '',
 		'develop' => '',
 		'wpcom-themes' => '',
@@ -111,7 +111,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
 				$repoConfig = $configClass::getConfig();
 				// replace out the default types based on the composer.json vendor mapping
-				$repoConfig['types'] = array_replace( $repoConfig['types'], $types );
+				$repoConfig['types'] = array_replace( $repoConfig['types'], array_intersect_key( $types, $repoConfig['types'] ) );
 				// allow config properties to be overridden by composer.json
 				if ( is_array( $definition ) ) {
 					// @todo: any sort of recursion?
