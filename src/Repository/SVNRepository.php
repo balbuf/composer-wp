@@ -351,6 +351,14 @@ class SVNRepository extends ComposerRepository {
 	}
 
 	/**
+	 * Return the vendor => type mapping for this repo.
+	 * @return array vendor type mapping
+	 */
+	function getVendors() {
+		return $this->vendors;
+	}
+
+	/**
 	 * No-op
 	 */
 	function resetPackageIds() {}

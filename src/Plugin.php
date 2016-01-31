@@ -90,6 +90,15 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// add our repo classes as available ones to use
 		$rm->setRepositoryClass( 'wp-svn', '\\' . __NAMESPACE__ . '\\Repository\\SVNRepository' );
 
+		// user-defined type mappings
+		$types = array();
+		if ( !empty( $this->extra['vendors'] ) ) {
+			foreach ( $this->extra['vendors'] as $vendor => $type ) {
+				$types += array( $type => array() );
+				$types[ $type ][] = $vendor;
+			}
+		}
+
 		// create the repos!
 		foreach ( $repos as $name => $definition ) {
 			// is this a builtin repo?
@@ -102,11 +111,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
 				$repoConfig = $configClass::getConfig();
 				// replace out the default types based on the composer.json vendor mapping
-				if ( !empty( $this->extra['vendors'] ) ) {
-					// make sure this property is set
-					$repoConfig += array( 'types' => array() );
-					$repoConfig['types'] = array_replace( $repoConfig['types'], $this->extra['vendors'] );
-				}
+				$repoConfig['types'] = array_replace( $repoConfig['types'], $types );
 				// allow config properties to be overridden by composer.json
 				if ( is_array( $definition ) ) {
 					// @todo: any sort of recursion?

@@ -11,6 +11,8 @@ use Composer\Package\CompletePackage;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use Composer\Package\Link;
+use Composer\Semver\Constraint\Constraint;
 
 class WordPressPluginsRepository extends SVNRepositoryConfig {
 
@@ -27,7 +29,20 @@ class WordPressPluginsRepository extends SVNRepositoryConfig {
 	 * Filter the package to add dist and other meta information.
 	 */
 	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
-		$shortName = substr( strstr( $package->getName(), '/' ), 1 );
+		list( $vendor, $shortName ) = explode( '/',  $package->getName() );
+		// add "replaces" array for any other vendors that this repository supports
+		if ( count( $vendors = $package->getRepository()->getVendors() ) > 1 ) {
+			$replaces = array();
+			$constraint = new Constraint( '=', $package->getVersion() );
+			foreach ( $vendors as $vendorName => $type ) {
+				// it doesn't replace itself
+				if ( $vendorName === $vendor ) {
+					continue;
+				}
+				$replaces[] = new Link( $package->getName(), "$vendorName/$shortName", $constraint, "'$type' alias for", $package->getPrettyVersion() );
+			}
+			$package->setReplaces( $replaces );
+		}
 		// try to get the plugin info - may return an array or null/false
 		if ( $info = static::getPluginInfo( $shortName, $io ) ) {
 			// set the dist info
@@ -41,10 +56,11 @@ class WordPressPluginsRepository extends SVNRepositoryConfig {
 
 			// set some additional meta info
 			// this is inconsequential to the solver, but it gets stored in composer.lock
+			// and appears when running `composer show vendor/package`
 			if ( isset( $info['short_description'] ) ) {
 				$package->setDescription( $info['short_description'] );
 			}
-			if ( isset( $info['contributors'] ) ) {
+			if ( !empty( $info['contributors'] ) ) {
 				$authors = array();
 				foreach ( $info['contributors'] as $name => $homepage ) {
 					$authors[] = array(
@@ -54,14 +70,17 @@ class WordPressPluginsRepository extends SVNRepositoryConfig {
 				}
 				$package->setAuthors( $authors );
 			}
+			if ( !empty( $info['tags'] ) ) {
+				$package->setKeywords( $info['tags'] );
+			}
 			// URL-ready slug
 			$pluginSlug = urlencode( $shortName );
 			$package->setSupport( array(
 				'forum' => "https://wordpress.org/support/plugin/$pluginSlug/",
 				'source' => "http://plugins.trac.wordpress.org/browser/$pluginSlug/",
+				'docs' => "https://wordpress.org/plugins/$pluginSlug/",
 			) );
 			$package->setHomepage( "https://wordpress.org/plugins/$pluginSlug/" );
-			// @todo: add optional wordpress version check
 		} else if ( $info === null ) {
 			// null means the package is no longer active
 			$package->setAbandoned( true );
