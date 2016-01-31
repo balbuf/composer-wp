@@ -27,17 +27,17 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	protected $composer;
 	protected $io;
 	// these are builtin repos that are named and can be enabled/disabled in composer.json
-	// the name maps to a class in Repository\Builtin which defines its config options
+	// the name maps to a class in Repository\Config\Builtin which defines its config options
 	protected $builtinRepos = array(
-		'plugins' => 'WordPressPluginsRepository',
-		'themes' => 'WordPressThemesRepository',
+		'plugins' => 'WordPressPlugins',
+		'themes' => 'WordPressThemes',
 		'core' => '',
 		'develop' => '',
 		'wpcom-themes' => '',
 		'vip-plugins' => '',
 	);
 	// these repos are enabled by default, unless otherwise disabled
-	protected $defaultRepos = array( 'plugins' );
+	protected $defaultRepos = array( 'plugins', 'core' );
 
 	/**
 	 * Instruct the plugin manager to subscribe us to these events.
@@ -108,7 +108,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 					continue;
 				}
 				// grab the repo config
-				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
+				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Config\\Builtin\\' . $this->builtinRepos[ $name ];
 				$repoConfig = new $configClass();
 				// replace out the default types based on the composer.json vendor mapping
 				$repoConfig->set( 'types', array_replace( $repoConfig->get( 'types' ), array_intersect_key( $types, $repoConfig->get( 'types' ) ) ) );

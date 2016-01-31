@@ -4,7 +4,7 @@
  * Repository definition for the WordPress plugins repository.
  */
 
-namespace BalBuf\ComposerWP\Repository\Builtin;
+namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
