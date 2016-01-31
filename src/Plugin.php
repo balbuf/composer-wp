@@ -2,7 +2,6 @@
 
 /**
  * TODO
- * - figure out a better way to rename vendors
  * - how are the non-ascii package names handled?
  * - allow directories of plugin zips to be specified !
  * - ssh into a server to get at zipped plugins
@@ -40,6 +39,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	);
 	// these repos are enabled by default, unless otherwise disabled
 	protected $defaultRepos = array( 'plugins', 'core' );
+	// these repos are auto-enabled if their vendor names are found in the root package, unless otherwise disabled
+	protected $autoLoadRepos = array( 'themes', 'wpcom-themes', 'vip-plugins' );
 
 	/**
 	 * Instruct the plugin manager to subscribe us to these events.
@@ -59,11 +60,12 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// store composer and io objects for reuse
 		$this->composer = $composer;
 		$this->io = $io;
-		// the extra data from the composer.jsom
+		// the extra data from the composer.json
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
 		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : array();
-		// add the default repos, if desired
+
+		// these will be all the repos we try to enable
 		$repos = array();
 		// get the user-defined repos first
 		if ( !empty( $this->extra['repositories'] ) ) {
@@ -86,33 +88,70 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// add the default repos - they will only be added if not previously defined
 		$repos += array_fill_keys( $this->defaultRepos, true );
 
+		// get the vendors of the root requirements
+		// @todo - capture the package name if this is any command where a package name is passed, e.g. 'require'
+		$rootRequires = array_merge( $composer->getPackage()->getRequires(), $composer->getPackage()->getDevRequires() );
+		$rootVendors = array();
+		foreach ( $rootRequires as $link ) {
+			$rootVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
+		}
+
+		// get the user-defined mapping of vendor aliases
+		$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : array();
+		// get all of the keys that point to a falsey value - these vendors will be disabled
+		$vendorDisable = array_keys( $vendorAliases, false );
+		// now remove those falsey values
+		$vendorAliases = array_filter( $vendorAliases );
+		// a filter used to remove disabled vendors from an array of vendors
+		$filterDisable = function( $value ) use ( $vendorDisable ) {
+			return !in_array( $value, $vendorDisable );
+		};
+
+		// get the configs for all the builtin repos and add vendor aliases
+		$builtin = array();
+		foreach ( $this->builtinRepos as $name => $class ) {
+			// add the fully qualified namespace to the class name
+			$class = '\\' . __NAMESPACE__ . '\\Repository\\Config\\Builtin\\' . $class;
+			// instantiate the config class
+			$builtin[ $name ] = new $class();
+			$types = $builtin[ $name ]->get( 'types' );
+			// all vendors this repo recognizes, keyed on vendor
+			$allVendors = array();
+			// get the factory-set types
+			// add user-defined vendor aliases
+			foreach ( $types as $type => &$vendors ) {
+				// vendors could be a string
+				$vendors = (array) $vendors;
+				// get the vendor aliases for any vendors that match those in this type
+				$aliases = array_keys( array_intersect( $vendorAliases, $vendors ) );
+				// combine, and remove duplicates and disabled aliases
+				$vendors = array_filter( array_unique( array_merge( $vendors, $aliases ) ), $filterDisable );
+				// keep track of all the vendors to see if we will need to autoload
+				$allVendors += array_flip( $vendors );
+			}
+			$builtin[ $name ]->set( 'types', $types );
+			// check if the vendor is represented in the root composer.json
+			// and enable this repo if it is one of the auto-load ones
+			if ( in_array( $name, $this->autoLoadRepos ) && count( array_intersect_key( $allVendors, $rootVendors ) ) ) {
+				// this ensures that a repo is not enabled if it has been explicitly disabled by the user
+				$repos += [ $name => true ];
+			}
+		}
+
 		// the repo manager
 		$rm = $this->composer->getRepositoryManager();
 		// add our repo classes as available ones to use
 		$rm->setRepositoryClass( 'wp-svn', '\\' . __NAMESPACE__ . '\\Repository\\SVNRepository' );
 
-		// user-defined type mappings
-		$types = array();
-		if ( !empty( $this->extra['vendors'] ) ) {
-			foreach ( $this->extra['vendors'] as $vendor => $type ) {
-				$types += array( $type => array() );
-				$types[ $type ][] = $vendor;
-			}
-		}
-
 		// create the repos!
 		foreach ( $repos as $name => $definition ) {
 			// is this a builtin repo?
-			if ( isset( $this->builtinRepos[ $name ] ) ) {
+			if ( isset( $builtin[ $name ] ) ) {
 				// a falsey value means we will not use this repo
 				if ( !$definition ) {
 					continue;
 				}
-				// grab the repo config
-				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Config\\Builtin\\' . $this->builtinRepos[ $name ];
-				$repoConfig = new $configClass();
-				// replace out the default types based on the composer.json vendor mapping
-				$repoConfig->set( 'types', array_replace( $repoConfig->get( 'types' ), array_intersect_key( $types, $repoConfig->get( 'types' ) ) ) );
+				$repoConfig = $builtin[ $name ];
 				// allow config properties to be overridden by composer.json
 				if ( is_array( $definition ) ) {
 					// replace out these values
