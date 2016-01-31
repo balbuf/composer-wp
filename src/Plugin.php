@@ -34,7 +34,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'themes' => 'WordPressThemes',
 		'core' => 'WordPressCore',
 		'develop' => 'WordPressDevelop',
-		'wpcom-themes' => '',
+		'wpcom-themes' => 'WordPressComThemes',
 		'vip-plugins' => 'WordPressVIP',
 	);
 	// these repos are enabled by default, unless otherwise disabled
