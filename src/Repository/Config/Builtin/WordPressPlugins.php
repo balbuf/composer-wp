@@ -11,7 +11,7 @@ use Composer\Package\CompletePackage;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 
-class WordPressPluginsRepository extends SVNRepositoryConfig {
+class WordPressPlugins extends SVNRepositoryConfig {
 
 	protected $config = array(
 		'url' => 'http://plugins.svn.wordpress.org/',

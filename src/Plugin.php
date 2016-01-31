@@ -37,7 +37,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'vip-plugins' => '',
 	);
 	// these repos are enabled by default, unless otherwise disabled
-	protected $defaultRepos = array( 'plugins', 'core' );
+	protected $defaultRepos = array( 'plugins' );
 
 	/**
 	 * Instruct the plugin manager to subscribe us to these events.
