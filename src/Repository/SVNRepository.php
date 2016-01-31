@@ -37,11 +37,18 @@ class SVNRepository extends ComposerRepository {
 		// @TODO: add event dispatcher?
 		$repoConfig = $repoConfig->getConfig();
 		// check url immediately - can't do anything without it
-		if ( empty( $repoConfig['url'] ) || ( $urlParts = parse_url( $repoConfig['url'] ) ) === false || empty( $urlParts['scheme'] ) ) {
-			throw new \UnexpectedValueException( 'Invalid or missing url given for Wordpress SVN repository: ' . ( isset( $repoConfig['url'] ) ? $repoConfig['url'] : '' ) );
+		$urls = array();
+		foreach ( (array) $repoConfig['url'] as $url ) {
+			if ( ( $urlParts = parse_url( $url ) ) === false || empty( $urlParts['scheme'] ) ) {
+				continue;
+			}
+			// untrailingslashit
+			$urls[] = rtrim( $url, '/' );
 		}
-		// untrailingslashit
-		$repoConfig['url'] = rtrim( $repoConfig['url'], '/' );
+		if ( !count( $urls ) ) {
+			throw new \UnexpectedValueException( 'No valid URLs for SVN repository: ' . print_r( $repoConfig['url'], true ) );
+		}
+		$repoConfig['url'] = $urls;
 		$this->repoConfig = $repoConfig;
 
 		$this->io = $io;
@@ -162,7 +169,7 @@ class SVNRepository extends ComposerRepository {
 				// check the versions and add any good ones to the set
 				foreach ( SvnUtil::parseSvnList( $pkgRaw ) as $version ) {
 					// format the version identifier to be composer-compatible
-					$version = $this->filterVersion( $version, $name, $path );
+					$version = $this->filterVersion( $version, $name, $path, $providerUrl );
 					// if the version string is empty, we don't take it
 					if ( strlen( $version ) ) {
 						$packages[ $version ] = trim( "$relPath/$version", '/' );
@@ -171,7 +178,7 @@ class SVNRepository extends ComposerRepository {
 			} else {
 				// otherwise we add as-is (no checking is performed to see if this reference really exists)
 				// @todo: perhaps add an optional check?
-				$version = $this->filterVersion( basename( $path ), $name, $path );
+				$version = $this->filterVersion( basename( $path ), $name, $path, $providerUrl );
 				// if the version string is empty, we don't take it
 				if ( strlen( $version ) ) {
 					$packages[ $version ] = $relPath;
@@ -273,27 +280,30 @@ class SVNRepository extends ComposerRepository {
 		// start out empty
 		$this->providerListing = $this->providerHash = array();
 
-		// cycle through the provider path(s)
-		foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
-			// form the url to this provider listing - avoid double slashing and no trailing slash
-			$url = rtrim( $this->repoConfig['url'] . '/' . ltrim( $path, '/' ), '/' );
-			// if the path ends with a slash, we grab its subdirectories
-			if ( substr( $path, -1 ) === '/' ) {
-				// try to get a listing of providers
-				try {
-					$providersRaw = self::$SvnUtil->execute( 'ls', $url );
-				} catch( \RuntimeException $e ) {
-					throw new \RuntimeException( "SVN Error: Could not retrieve provider listing from $url " . $e->getMessage() );
+		// cycle through the urls
+		foreach ( $this->repoConfig['url'] as $baseUrl ) {
+			// cycle through the provider path(s)
+			foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
+				// form the url to this provider listing - avoid double slashing and no trailing slash
+				$url = rtrim( $baseUrl . '/' . ltrim( $path, '/' ), '/' );
+				// if the path ends with a slash, we grab its subdirectories
+				if ( substr( $path, -1 ) === '/' ) {
+					// try to get a listing of providers
+					try {
+						$providersRaw = self::$SvnUtil->execute( 'ls', $url );
+					} catch( \RuntimeException $e ) {
+						throw new \RuntimeException( "SVN Error: Could not retrieve provider listing from $url " . $e->getMessage() );
+					}
+					// cycle through to remove exclusions
+					foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
+						$this->addProvider( $name, $path, "$url/$name" );
+					}
+				} else {
+					// otherwise we add as-is - the provider name is just the basename of the relative path
+					// these explicit providers are not checked to see if they actually exist
+					// @todo: optional check to exclude these if 404?
+					$this->addProvider( basename( $path ), $path, $url );
 				}
-				// cycle through to remove exclusions
-				foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
-					$this->addProvider( $name, $path, "$url/$name" );
-				}
-			} else {
-				// otherwise we add as-is - the provider name is just the basename of the relative path
-				// these explicit providers are not checked to see if they actually exist
-				// @todo: optional check to exclude these if 404?
-				$this->addProvider( basename( $path ), $path, $url );
 			}
 		}
 	}
