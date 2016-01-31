@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Repository definition for the WordPress plugins repository.
+ * Repository definition for the WordPress themes repository.
  */
 
 namespace BalBuf\ComposerWP\Repository\Builtin;
@@ -13,9 +13,8 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressThemesRepository extends SVNRepositoryConfig {
 
-	protected static $config = array(
+	protected $config = array(
 		'url' => 'https://themes.svn.wordpress.org/',
-		'package-paths' => array( '/' ),
 		'types' => array( 'wordpress-theme' => 'wordpress-theme' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);

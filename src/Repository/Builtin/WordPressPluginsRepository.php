@@ -13,7 +13,7 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressPluginsRepository extends SVNRepositoryConfig {
 
-	protected static $config = array(
+	protected $config = array(
 		'url' => 'http://plugins.svn.wordpress.org/',
 		'package-paths' => array( '/tags/', '/trunk' ),
 		'types' => array( 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ),

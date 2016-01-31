@@ -3,6 +3,7 @@
 namespace BalBuf\ComposerWP\Repository;
 
 use Composer\Repository\ComposerRepository;
+use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\IO\IOInterface;
 use Composer\Config;
 use Composer\EventDispatcher\EventDispatcher;
@@ -31,65 +32,27 @@ class SVNRepository extends ComposerRepository {
 	protected $vendors = array(); // vendor name mapping to type
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
-	// config defaults
-	protected $repoConfig = array(
-		// base url
-		'url' => null,
-		// paths to specific providers or to listing of providers, relative to url
-		// paths ending with a slash are considered a listing and will use `svn ls` to retrieve the providers
-		// otherwise, the path is taken at face value to point to a specific provider
-		// the provider name that is used will only be the basename, e.g. path/basename
-		'provider-paths' => array( '/' ),
-		// match provider names to exclude from the listing
-		// does not apply to explicit provider paths (i.e. those not ending in a slash)
-		// @see preg_match
-		'provider-exclude' => null,
-		// array of alias => actual mappings
-		// actual should be full path of the provider relative to the base url
-		'provider-aliases' => array(),
-		// paths to specific packages or listing of packages within the providers
-		// this is relative to the provider url
-		'package-paths' => array( '/' ),
-		// manipulate version identifiers to make them parsable by composer
-		// if the version is replaced with an empty string, it will be excluded
-		// all replacement patterns are executed in the order they are declared here
-		// @see preg_replace
-		'version-replace' => array(
-			'/^trunk$/' => 'dev-trunk',
-		),
-		// mapping of supported package types to virtual vendor(s)
-		// vendors can be a single string or an array of strings
-		// the requested virtual vendor of the dependency will dictate the package's type
-		'types' => array(),
-		// array of package defaults that will be the basis for the package definition
-		'package-defaults' => array(),
-		// array of values to override any fields after defaults and repo-determined are resolved
-		'package-overrides' => array(),
-		// a function which is called on the package object after it is created and before used by the solver
-		'package-filter' => null,
-	);
 
-	public function __construct( array $repoConfig, IOInterface $io, Config $config, EventDispatcher $eventDispatcher = null ) {
+	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io, Config $config, EventDispatcher $eventDispatcher = null ) {
 		// @TODO: add event dispatcher?
+		$repoConfig = $repoConfig->getConfig();
 		// check url immediately - can't do anything without it
 		if ( empty( $repoConfig['url'] ) || ( $urlParts = parse_url( $repoConfig['url'] ) ) === false || empty( $urlParts['scheme'] ) ) {
 			throw new \UnexpectedValueException( 'Invalid or missing url given for Wordpress SVN repository: ' . ( isset( $repoConfig['url'] ) ? $repoConfig['url'] : '' ) );
 		}
 		// untrailingslashit
 		$repoConfig['url'] = rtrim( $repoConfig['url'], '/' );
-
-		// start with the defaults and update any properties
-		$this->repoConfig = array_replace( $this->repoConfig, $repoConfig );
+		$this->repoConfig = $repoConfig;
 
 		$this->io = $io;
 		$this->loader = new ArrayLoader();
 		$this->plugin = $repoConfig['plugin'];
 
 		// parse and store the vendor / package type mappings
-		if ( is_array( $this->repoConfig['types'] ) && count( $this->repoConfig['types'] ) ) {
+		if ( is_array( $repoConfig['types'] ) && count( $repoConfig['types'] ) ) {
 			$this->vendors = array();
 			// add the types
-			foreach ( $this->repoConfig['types'] as $type => $vendors ) {
+			foreach ( $repoConfig['types'] as $type => $vendors ) {
 				// add the recognized vendors for this type
 				foreach ( (array) $vendors as $vendor ) {
 					$this->vendors[ $vendor ] = $type;

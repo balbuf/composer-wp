@@ -109,17 +109,19 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				}
 				// grab the repo config
 				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Builtin\\' . $this->builtinRepos[ $name ];
-				$repoConfig = $configClass::getConfig();
+				$repoConfig = new $configClass();
 				// replace out the default types based on the composer.json vendor mapping
-				$repoConfig['types'] = array_replace( $repoConfig['types'], array_intersect_key( $types, $repoConfig['types'] ) );
+				$repoConfig->set( 'types', array_replace( $repoConfig->get( 'types' ), array_intersect_key( $types, $repoConfig->get( 'types' ) ) ) );
 				// allow config properties to be overridden by composer.json
 				if ( is_array( $definition ) ) {
-					// @todo: any sort of recursion?
-					$repoConfig = array_replace( $repoConfig, $definition );
+					// replace out these values
+					foreach ( $definition as $key => $value ) {
+						$repoConfig->set( $key, $value );
+					}
 				}
-				$repoConfig['plugin'] = $this;
+				$repoConfig->set( 'plugin', $this );
 				// add the repo!
-				$rm->addRepository( $rm->createRepository( $configClass::getRepositoryType(), $repoConfig ) );
+				$rm->addRepository( $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
 			} else {
 				// @todo handle additional repo types
 			}
