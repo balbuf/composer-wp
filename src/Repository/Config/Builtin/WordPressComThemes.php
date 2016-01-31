@@ -16,9 +16,17 @@ class WordPressComThemes extends SVNRepositoryConfig {
 		'provider-paths' => array( '/' ),
 		'package-paths' => array( '' ),
 		'types' => array( 'wordpress-com-theme' => 'wordpress-com' ),
+		'provider-filter' => array( __CLASS__, 'filterProvider' ),
 		'version-filter' => array( __CLASS__, 'filterVersion' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);
+
+	static function filterProvider( $name, $path, $url ) {
+		if ( $name === '.ignore' ) {
+			return '';
+		}
+		return $name;
+	}
 
 	/**
 	 * The WordPress.com themes are not versioned.
