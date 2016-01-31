@@ -5,8 +5,6 @@ namespace BalBuf\ComposerWP\Repository;
 use Composer\Repository\ComposerRepository;
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\IO\IOInterface;
-use Composer\Config;
-use Composer\EventDispatcher\EventDispatcher;
 use Composer\Package\Loader\ArrayLoader;
 use BalBuf\ComposerWP\Util\Svn as SvnUtil;
 use Composer\Package\PackageInterface;
@@ -34,7 +32,7 @@ class SVNRepository extends ComposerRepository {
 	protected $plugin; //the plugin class that instantiated this repository
 	protected $defaultVendor;
 
-	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io, Config $config, EventDispatcher $eventDispatcher = null ) {
+	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io ) {
 		// @TODO: add event dispatcher?
 		$repoConfig = $repoConfig->getConfig();
 		// check url immediately - can't do anything without it
