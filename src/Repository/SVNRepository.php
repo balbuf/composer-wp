@@ -32,6 +32,7 @@ class SVNRepository extends ComposerRepository {
 	protected $vendors = array(); // vendor name mapping to type
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
+	protected $defaultVendor;
 
 	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io, Config $config, EventDispatcher $eventDispatcher = null ) {
 		// @TODO: add event dispatcher?
@@ -68,6 +69,8 @@ class SVNRepository extends ComposerRepository {
 		} else {
 			throw new \UnexpectedValueException( 'Vendor / package type mapping is required.' );
 		}
+		reset( $this->vendors );
+		$this->defaultVendor = key( $this->vendors );
 
 		// set the SvnUtil for all instantiated classes to use
 		if ( !isset( self::$SvnUtil ) ) {
@@ -321,7 +324,9 @@ class SVNRepository extends ComposerRepository {
 		}
 		// only add the provider if it is truthy
 		if ( $name ) {
-			$this->providerListing[] = $name;
+			// this provider listing is not used in solving, just for listing
+			// so just use the default vendor (i.e. first one we have)
+			$this->providerListing[] = "{$this->defaultVendor}/$name";
 			$this->providerHash[ $name ] = $absUrl;
 		}
 	}
@@ -343,5 +348,10 @@ class SVNRepository extends ComposerRepository {
 	 * No-op
 	 */
 	function addPackage( PackageInterface $package ) {}
+
+	/**
+	 * No-op
+	 */
+	protected function loadRootServerFile() {}
 
 }

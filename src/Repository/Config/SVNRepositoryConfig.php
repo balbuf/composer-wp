@@ -11,7 +11,7 @@ abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
 	// the repo specific config
 	protected $config = array();
 	private static $configDefaults = array(
-		// base url
+		// base url(s)
 		'url' => null,
 		// paths to specific providers or to listing of providers, relative to url
 		// paths ending with a slash are considered a listing and will use `svn ls` to retrieve the providers

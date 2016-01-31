@@ -3,6 +3,7 @@
 /**
  * TODO
  * - figure out a better way to rename vendors
+ * - how are the non-ascii package names handled?
  * - allow directories of plugin zips to be specified !
  * - ssh into a server to get at zipped plugins
  * - github hosted plugins possibly missing composer.json
