@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Repository definition for the WordPress VIP plugins repository.
+ * Repository definition for the WordPress.com themes repository.
  */
 
 namespace BalBuf\ComposerWP\Repository\Config\Builtin;
@@ -15,7 +15,7 @@ class WordPressComThemes extends SVNRepositoryConfig {
 		'provider-paths' => array( '/' ),
 		'package-paths' => array( '' ),
 		'types' => array( 'wordpress-theme' => 'wordpress-com' ),
-		'provider-filter' => array( __CLASS__, 'filterProvider' ),
+		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'version-filter' => array( __CLASS__, 'filterVersion' ),
 	);
 

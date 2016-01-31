@@ -94,7 +94,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 						return null;
 					}
 				}
-				if ( $io->isVeryVerbose() ) {
+				if ( $io->isDebug() ) {
 					$io->Write( "Theme data: \n" . print_r( $data, true ) );
 				}
 				static::$themeInfo[ $theme ] = $data;

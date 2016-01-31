@@ -18,7 +18,7 @@ class WordPressDevelop extends SVNRepositoryConfig {
 		'provider-paths' => array( '' ),
 		'package-paths' => array( '/tags/', '/trunk' ),
 		'types' => array( 'wordpress-develop' => array( 'wordpress', 'wordpress-core' ) ),
-		'provider-filter' => array( __CLASS__, 'filterProvider' ),
+		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);
 

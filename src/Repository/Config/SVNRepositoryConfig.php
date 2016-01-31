@@ -6,11 +6,12 @@
 
 namespace BalBuf\ComposerWP\Repository\Config;
 
-abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
+class SVNRepositoryConfig extends RepositoryConfig {
 
+	const repoType = 'wp-svn';
 	// the repo specific config
-	protected $config = array();
-	private static $configDefaults = array(
+	protected $config;
+	protected static $configDefaults = array(
 		// base url(s)
 		'url' => null,
 		// paths to specific providers or to listing of providers, relative to url
@@ -19,7 +20,7 @@ abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
 		// the provider name that is used will only be the basename, e.g. path/basename
 		'provider-paths' => array( '/' ),
 		// filter provider names (especially helpful when there could be conflicting names in different dirs)
-		'provider-filter' => null,
+		'name-filter' => null,
 		// paths to specific packages or listing of packages within the providers
 		// this is relative to the provider url
 		'package-paths' => array( '/' ),
@@ -46,33 +47,6 @@ abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
 	 */
 	static function filterVersion( $version ) {
 		return preg_replace( '/^trunk$/', 'dev-trunk', $version );
-	}
-
-	function __construct() {
-		// replace these defaults into the config values of the instantiated child class
-		$this->config = array_replace( self::$configDefaults, $this->config );
-	}
-
-	function getConfig() {
-		return $this->config;
-	}
-
-	function set( $key, $value ) {
-		$this->config[ $key ] = $value;
-	}
-
-	function get( $key ) {
-		if ( isset( $this->config[ $key ] ) ) {
-			return $this->config[ $key ];
-		}
-	}
-
-	function getRepositoryType() {
-		return 'wp-svn';
-	}
-
-	function getConfigDefaults() {
-		return self::$configDefaults;
 	}
 
 }

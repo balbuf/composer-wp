@@ -248,7 +248,8 @@ class SVNRepository extends ComposerRepository {
 			// add the package object to the set
 			$this->providers[ $name ][ $version ] = $package;
 
-			// handle root aliases - not sure if they will apply here (this was copped from the parent class)
+			// handle root aliases
+			// @todo: not sure if this is correct (this was copped from the parent class)
 			if ( isset( $this->rootAliases[ $package->getName() ][ $package->getVersion() ] ) ) {
 				$rootAliasData = $this->rootAliases[ $package->getName() ][ $package->getVersion() ];
 				$alias = $this->createAliasPackage( $package, $rootAliasData['alias_normalized'], $rootAliasData['alias'] );
@@ -321,8 +322,8 @@ class SVNRepository extends ComposerRepository {
 	 */
 	protected function addProvider( $name, $relPath, $absUrl ) {
 		// is there a provider name filter?
-		if ( is_callable( $this->repoConfig['provider-filter'] ) ) {
-			$name = call_user_func( $this->repoConfig['provider-filter'], $name, $relPath, $absUrl );
+		if ( is_callable( $this->repoConfig['name-filter'] ) ) {
+			$name = call_user_func( $this->repoConfig['name-filter'], $name, $relPath, $absUrl );
 		}
 		// only add the provider if it is truthy
 		if ( $name ) {

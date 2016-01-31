@@ -102,7 +102,7 @@ class WordPressPlugins extends SVNRepositoryConfig {
 						return false;
 					}
 				}
-				if ( $io->isVeryVerbose() ) {
+				if ( $io->isDebug() ) {
 					$io->Write( "Plugin data: \n" . print_r( $data, true ) );
 				}
 				static::$pluginInfo[ $plugin ] = $data;
