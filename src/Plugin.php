@@ -32,7 +32,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'plugins' => 'WordPressPlugins',
 		'themes' => 'WordPressThemes',
 		'core' => 'WordPressCore',
-		'develop' => '',
+		'develop' => 'WordPressDevelop',
 		'wpcom-themes' => '',
 		'vip-plugins' => '',
 	);

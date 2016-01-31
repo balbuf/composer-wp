@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Repository definition for the WordPress core and develop SVN repositories.
+ * Repository definition for the WordPress core SVN repository.
  */
 
 namespace BalBuf\ComposerWP\Repository\Config\Builtin;
@@ -14,7 +14,7 @@ use Composer\Plugin\PluginInterface;
 class WordPressCore extends SVNRepositoryConfig {
 
 	protected $config = array(
-		'url' => array( 'https://core.svn.wordpress.org/', 'https://develop.svn.wordpress.org/' ),
+		'url' => 'https://core.svn.wordpress.org/',
 		'provider-paths' => array( '' ),
 		'package-paths' => array( '/tags/', '/trunk' ),
 		'types' => array( 'wordpress-core' => array( 'wordpress', 'wordpress-core' ) ),
@@ -27,18 +27,11 @@ class WordPressCore extends SVNRepositoryConfig {
 	 */
 	static function filterProvider( $name, $path, $url ) {
 		if ( $name === '' ) {
-			return strpos( $url, 'core' ) ? 'wordpress' : 'develop';
+			return 'wordpress';
 		}
 	}
 
 	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
-		$package->setHomepage( 'https://wordpress.org/' );
-		// is this a develop package?
-		if ( strpos( $package->getSourceUrl(), 'develop.svn' ) !== false ) {
-			$package->setDescription( 'WordPress develop repo offering source files, unit tests, and i18n tools.' );
-			$package->setType( 'wordpress-develop' );
-			return;
-		}
 		// strip out "tags", slashes, and spaces
 		$version = preg_replace( '/tags|[\\/ ]/', '', $package->getSourceReference() );
 		// trunk does not have a dist version
@@ -60,6 +53,7 @@ class WordPressCore extends SVNRepositoryConfig {
 			'source' => 'https://core.trac.wordpress.org/browser/' . $package->getSourceReference(),
 			'docs' => 'https://codex.wordpress.org/Main_Page',
 		) );
+		$package->setHomepage( 'https://wordpress.org/' );
 	}
 
 }
