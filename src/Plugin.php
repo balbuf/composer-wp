@@ -31,13 +31,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	protected $builtinRepos = array(
 		'plugins' => 'WordPressPlugins',
 		'themes' => 'WordPressThemes',
-		'core' => '',
+		'core' => 'WordPressCore',
 		'develop' => '',
 		'wpcom-themes' => '',
 		'vip-plugins' => '',
 	);
 	// these repos are enabled by default, unless otherwise disabled
-	protected $defaultRepos = array( 'plugins' );
+	protected $defaultRepos = array( 'plugins', 'core' );
 
 	/**
 	 * Instruct the plugin manager to subscribe us to these events.
@@ -61,7 +61,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
 		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : array();
-
 		// add the default repos, if desired
 		$repos = array();
 		// get the user-defined repos first

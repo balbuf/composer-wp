@@ -28,7 +28,7 @@ use Composer\Semver\Constraint\Constraint;
 class SVNRepository extends ComposerRepository {
 
 	static protected $SvnUtil;
-	protected $providersHash; // key providers stored by key for quicker existence check
+	protected $providerHash; // map {provider name} => {provider url}
 	protected $vendors = array(); // vendor name mapping to type
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
@@ -162,7 +162,7 @@ class SVNRepository extends ComposerRepository {
 				// check the versions and add any good ones to the set
 				foreach ( SvnUtil::parseSvnList( $pkgRaw ) as $version ) {
 					// format the version identifier to be composer-compatible
-					$version = $this->replaceVersion( $version );
+					$version = $this->filterVersion( $version, $name, $path );
 					// if the version string is empty, we don't take it
 					if ( strlen( $version ) ) {
 						$packages[ $version ] = trim( "$relPath/$version", '/' );
@@ -171,7 +171,7 @@ class SVNRepository extends ComposerRepository {
 			} else {
 				// otherwise we add as-is (no checking is performed to see if this reference really exists)
 				// @todo: perhaps add an optional check?
-				$version = $this->replaceVersion( basename( $path ) );
+				$version = $this->filterVersion( basename( $path ), $name, $path );
 				// if the version string is empty, we don't take it
 				if ( strlen( $version ) ) {
 					$packages[ $version ] = $relPath;
@@ -250,13 +250,11 @@ class SVNRepository extends ComposerRepository {
 	}
 
 	/**
-	 * Run the version through the replacement patterns.
+	 * Run the version through the filter, if set.
 	 */
-	protected function replaceVersion( $version ) {
-		if ( !empty( $this->repoConfig['version-replace'] ) ) {
-			foreach ( $this->repoConfig['version-replace'] as $pattern => $replacement ) {
-				$version = preg_replace( $pattern, $replacement, $version );
-			}
+	protected function filterVersion( $version, $name, $path ) {
+		if ( is_callable( $this->repoConfig['version-filter'] ) ) {
+			$version = call_user_func( $this->repoConfig['version-filter'], $version, $name, $path );
 		}
 		return $version;
 	}
@@ -272,11 +270,8 @@ class SVNRepository extends ComposerRepository {
 		if ( $this->io->isVerbose() ) {
 			$this->io->writeError( "Fetching providers from {$this->repoConfig['url']}" );
 		}
-
-		// this will be a basic array of provider names
-		$this->providerListing = array();
-		// this will map {provider name} => {provider url}
-		$this->providerHash = array();
+		// start out empty
+		$this->providerListing = $this->providerHash = array();
 
 		// cycle through the provider path(s)
 		foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
@@ -292,24 +287,32 @@ class SVNRepository extends ComposerRepository {
 				}
 				// cycle through to remove exclusions
 				foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
-					// is there an exclude pattern?
-					if ( !empty( $this->repoConfig['provider-exclude'] ) ) {
-						// should we exclude this provider?
-						if ( preg_match( $this->repoConfig['provider-exclude'], $name ) ) {
-							continue;
-						}
-					}
-					$this->providerListing[] = $name;
-					$this->providerHash[ $name ] = "$url/$name";
+					$this->addProvider( $name, $path, "$url/$name" );
 				}
 			} else {
 				// otherwise we add as-is - the provider name is just the basename of the relative path
 				// these explicit providers are not checked to see if they actually exist
 				// @todo: optional check to exclude these if 404?
-				$name = basename( $path );
-				$this->providerListing[] = $name;
-				$this->providerHash[ $name ] = $url;
+				$this->addProvider( basename( $path ), $path, $url );
 			}
+		}
+	}
+
+	/**
+	 * Add a provider to the set; call optional name filter.
+	 * @param string $name    resolved provider name
+	 * @param string $relPath the provider path from the repo config
+	 * @param string $absUrl  the fully qualified URL to this provider
+	 */
+	protected function addProvider( $name, $relPath, $absUrl ) {
+		// is there a provider name filter?
+		if ( is_callable( $this->repoConfig['provider-filter'] ) ) {
+			$name = call_user_func( $this->repoConfig['provider-filter'], $name, $relPath, $absUrl );
+		}
+		// only add the provider if it is truthy
+		if ( $name ) {
+			$this->providerListing[] = $name;
+			$this->providerHash[ $name ] = $absUrl;
 		}
 	}
 

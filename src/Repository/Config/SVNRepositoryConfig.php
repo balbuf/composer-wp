@@ -18,24 +18,16 @@ abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
 		// otherwise, the path is taken at face value to point to a specific provider
 		// the provider name that is used will only be the basename, e.g. path/basename
 		'provider-paths' => array( '/' ),
-		// match provider names to exclude from the listing
-		// does not apply to explicit provider paths (i.e. those not ending in a slash)
-		// @see preg_match
-		'provider-exclude' => null,
-		// array of alias => actual mappings
-		// actual should be full path of the provider relative to the base url
-		'provider-aliases' => array(),
+		// filter provider names (especially helpful when there could be conflicting names in different dirs)
+		'provider-filter' => null,
 		// paths to specific packages or listing of packages within the providers
 		// this is relative to the provider url
 		'package-paths' => array( '/' ),
 		// manipulate version identifiers to make them parsable by composer
 		// if the version is replaced with an empty string, it will be excluded
-		// all replacement patterns are executed in the order they are declared here
-		// @see preg_replace
-		'version-replace' => array(
-			'/^trunk$/' => 'dev-trunk',
-		),
+		'version-filter' => array( __CLASS__, 'filterVersion' ),
 		// mapping of supported package types to virtual vendor(s)
+		// i.e. {type} => {vendor}
 		// vendors can be a single string or an array of strings
 		// the requested virtual vendor of the dependency will dictate the package's type
 		'types' => array(),
@@ -46,6 +38,15 @@ abstract class SVNRepositoryConfig implements RepositoryConfigInterface {
 		// a function which is called on the package object after it is created and before used by the solver
 		'package-filter' => null,
 	);
+
+	/**
+	 * Default version filter: replace trunk with dev-trunk
+	 * @param  string $version found version
+	 * @return string          filtered version
+	 */
+	static function filterVersion( $version ) {
+		return preg_replace( '/^trunk$/', 'dev-trunk', $version );
+	}
 
 	function __construct() {
 		// replace these defaults into the config values of the instantiated child class
