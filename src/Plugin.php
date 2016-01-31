@@ -2,6 +2,7 @@
 
 /**
  * TODO
+ * - figure out a better way to rename vendors
  * - allow directories of plugin zips to be specified !
  * - ssh into a server to get at zipped plugins
  * - github hosted plugins possibly missing composer.json
@@ -34,7 +35,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'core' => 'WordPressCore',
 		'develop' => 'WordPressDevelop',
 		'wpcom-themes' => '',
-		'vip-plugins' => '',
+		'vip-plugins' => 'WordPressVIP',
 	);
 	// these repos are enabled by default, unless otherwise disabled
 	protected $defaultRepos = array( 'plugins', 'core' );

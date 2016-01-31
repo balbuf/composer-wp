@@ -274,14 +274,14 @@ class SVNRepository extends ComposerRepository {
 		if ( $this->providerListing !== null ) {
 			return;
 		}
-		if ( $this->io->isVerbose() ) {
-			$this->io->writeError( "Fetching providers from {$this->repoConfig['url']}" );
-		}
 		// start out empty
 		$this->providerListing = $this->providerHash = array();
 
 		// cycle through the urls
 		foreach ( $this->repoConfig['url'] as $baseUrl ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->writeError( "Fetching providers from $baseUrl" );
+			}
 			// cycle through the provider path(s)
 			foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
 				// form the url to this provider listing - avoid double slashing and no trailing slash
