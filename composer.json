@@ -2,6 +2,7 @@
 	"name": "balbuf/composer-wp",
 	"version": "1.0.0",
 	"description": "Manage WordPress core, plugins, and themes with composer.",
+	"keywords": [ "wordpress", "plugin", "plugins", "theme", "themes", "core", "wordpress.com", "vip", "WordPress VIP", "zip", "wp", "word press", "composerwp", "wpackagist" ],
 	"type": "composer-plugin",
 	"license": "MIT",
 	"authors": [
