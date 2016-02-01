@@ -71,7 +71,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 			$dir = ProcessExecutor::escape( $dir );
 		}
 		// patterns specific to both plugins and themes
-		$patterns = array( 'Version|Description|Author|Author URI|License' );
+		$patterns = array( 'inflating|Version|Description|Author|Author URI|License' );
 		// files within the archives to look at
 		$files = array();
 		// look for plugins?
@@ -92,11 +92,11 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		// 3. use `zipgrep` to scan the zip for WP theme or plugin headers
 		//    in style.css or *.php files, respectively, but only in the
 		//    top two directories within the zip
-		$cmd = "find -L $dir $maxdepth -iname '*.zip' -exec echo '{}' ';' -exec zipgrep -i '^[ ^I*]*("
-			. implode( '|', $patterns ) . "):' '{}' " . implode( ' ', $files ) . " -x '*/*/*' ';'";
+		$cmd = "find -L $dir $maxdepth -iname '*.zip' -exec echo '{}' ';' -exec sh -c "
+			. "\"unzip -c {} '*.php' -x '*/*/*' | grep -iE '^[ ^I*]*(" . implode( '|', $patterns ) . ")'\" ';'";
 
 		if ( $this->ssh ) {
-			// @todo: wrap command inside of ssh call
+			$cmd = 'ssh ' . ProcessExecutor::escape( $this->repoConfig['ssh'] ) . ' ' . ProcessExecutor::escape( $cmd );
 		}
 
 		$process = new ProcessExecutor( $this->io );
@@ -106,16 +106,20 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 			// store details about each of the files, which may be used to create a package
 			$files = array();
 			$zipFile = null;
+			$fileName = null;
 			// parse the response line-by-line to pluck out the header information
 			foreach ( $process->splitLines( $output ) as $line ) {
 				// is this a new zip file?
 				if ( strtolower( substr( $line, -4 ) ) === '.zip' ) {
 					$zipFile = $line;
+				// is this a new internal file?
+				} else if ( preg_match( '/^\s*inflating:\s*(.+?)\s*$/i', $line, $matches ) ) {
+					$fileName = $matches[1];
 				} else {
 					// parse the line for information
-					if ( preg_match( '/^((?:C:)?[^:]+):[\s*]*([^:]+):\s*(.+)\s*$/i', $line, $matches ) ) {
+					if ( preg_match( '/^[\s*]*([^:]+):\s*(.+?)\s*$/i', $line, $matches ) ) {
 						// for clarity
-						list(, $fileName, $property, $value ) = $matches;
+						list(, $property, $value ) = $matches;
 						$files[ $zipFile ][ $fileName ][ $property ] = $value;
 					}
 				}
