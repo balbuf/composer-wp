@@ -15,7 +15,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 
 	protected $config = array(
 		'url' => 'https://themes.svn.wordpress.org/',
-		'types' => array( 'wordpress-theme' => 'wordpress-theme' ),
+		'package-types' => array( 'wordpress-theme' => 'wordpress-theme' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);
 

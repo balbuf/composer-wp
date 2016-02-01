@@ -17,7 +17,7 @@ class WordPressCore extends SVNRepositoryConfig {
 		'url' => 'https://core.svn.wordpress.org/',
 		'provider-paths' => array( '' ),
 		'package-paths' => array( '/tags/', '/trunk' ),
-		'types' => array( 'wordpress-core' => array( 'wordpress', 'wordpress-core' ) ),
+		'package-types' => array( 'wordpress-core' => array( 'wordpress', 'wordpress-core' ) ),
 		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);

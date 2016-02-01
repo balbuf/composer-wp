@@ -27,7 +27,6 @@ class SVNRepository extends ComposerRepository {
 
 	static protected $SvnUtil;
 	protected $providerHash; // map {provider name} => {provider url}
-	protected $vendors = array(); // vendor name mapping to type
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
 	protected $defaultVendor;
@@ -54,21 +53,8 @@ class SVNRepository extends ComposerRepository {
 		$this->loader = new ArrayLoader();
 		$this->plugin = $repoConfig['plugin'];
 
-		// parse and store the vendor / package type mappings
-		if ( is_array( $repoConfig['types'] ) && count( $repoConfig['types'] ) ) {
-			$this->vendors = array();
-			// add the types
-			foreach ( $repoConfig['types'] as $type => $vendors ) {
-				// add the recognized vendors for this type
-				foreach ( (array) $vendors as $vendor ) {
-					$this->vendors[ $vendor ] = $type;
-				}
-			}
-		} else {
-			throw new \UnexpectedValueException( 'Vendor / package type mapping is required.' );
-		}
-		reset( $this->vendors );
-		$this->defaultVendor = key( $this->vendors );
+		reset( $repoConfig['vendors'] );
+		$this->defaultVendor = key( $repoConfig['vendors'] );
 
 		// set the SvnUtil for all instantiated classes to use
 		if ( !isset( self::$SvnUtil ) ) {
@@ -81,7 +67,7 @@ class SVNRepository extends ComposerRepository {
 		// get vendor and package name parts
 		if ( count( $parts = explode( '/', $name ) ) === 2 ) {
 			list( $vendor, $name ) = $parts;
-			if ( isset( $this->vendors[ $vendor ] ) ) {
+			if ( isset( $this->repoConfig['vendors'][ $vendor ] ) ) {
 				$package = parent::findPackage( $name, $constraint );
 				return $package;
 			}
@@ -93,7 +79,7 @@ class SVNRepository extends ComposerRepository {
 		// get vendor and package name parts
 		if ( count( $parts = explode( '/', $name ) ) === 2 ) {
 			list( $vendor, $name ) = $parts;
-			if ( isset( $this->vendors[ $vendor ] ) ) {
+			if ( isset( $this->repoConfig['vendors'][ $vendor ] ) ) {
 				$packages = parent::findPackages( $name, $constraint );
 				return $packages;
 			}
@@ -128,7 +114,7 @@ class SVNRepository extends ComposerRepository {
 		list( $vendor, $shortName ) = $parts;
 
 		// does the vendor match one of our virtual vendors?
-		if ( !isset( $this->vendors[ $vendor ] ) ) {
+		if ( !isset( $this->repoConfig['vendors'][ $vendor ] ) ) {
 			return array();
 		}
 
@@ -203,7 +189,7 @@ class SVNRepository extends ComposerRepository {
 			$data = array(
 				'name' => $name,
 				'version' => $version,
-				'type' => $this->vendors[ $vendor ],
+				'type' => $this->repoConfig['vendors'][ $vendor ],
 				'source' => array(
 					'type' => 'svn',
 					'url' => "$providerUrl/",
@@ -227,10 +213,10 @@ class SVNRepository extends ComposerRepository {
 			$package = $this->createPackage( $data, 'Composer\Package\CompletePackage' );
 			$package->setRepository( $this );
 			// add "replaces" array for any other vendors that this repository supports
-			if ( count( $this->vendors ) > 1 ) {
+			if ( count( $this->repoConfig['vendors'] ) > 1 ) {
 				$replaces = array();
 				$constraint = new Constraint( '=', $package->getVersion() );
-				foreach ( $this->vendors as $vendorName => $type ) {
+				foreach ( $this->repoConfig['vendors'] as $vendorName => $type ) {
 					// it doesn't replace itself
 					if ( $vendorName === $vendor ) {
 						continue;
@@ -330,14 +316,6 @@ class SVNRepository extends ComposerRepository {
 			$this->providerListing[] = "{$this->defaultVendor}/$name";
 			$this->providerHash[ $name ] = $absUrl;
 		}
-	}
-
-	/**
-	 * Return the vendor => type mapping for this repo.
-	 * @return array vendor type mapping
-	 */
-	function getVendors() {
-		return $this->vendors;
 	}
 
 	/**

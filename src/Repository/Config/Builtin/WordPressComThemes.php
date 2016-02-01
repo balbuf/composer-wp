@@ -14,7 +14,7 @@ class WordPressComThemes extends SVNRepositoryConfig {
 		'url' => 'https://wpcom-themes.svn.automattic.com/',
 		'provider-paths' => array( '/' ),
 		'package-paths' => array( '' ),
-		'types' => array( 'wordpress-theme' => 'wordpress-com' ),
+		'package-types' => array( 'wordpress-theme' => 'wordpress-com' ),
 		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'version-filter' => array( __CLASS__, 'filterVersion' ),
 	);

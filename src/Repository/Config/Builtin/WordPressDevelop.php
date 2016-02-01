@@ -17,7 +17,7 @@ class WordPressDevelop extends SVNRepositoryConfig {
 		'url' => 'https://develop.svn.wordpress.org/',
 		'provider-paths' => array( '' ),
 		'package-paths' => array( '/tags/', '/trunk' ),
-		'types' => array( 'wordpress-develop' => array( 'wordpress', 'wordpress-core' ) ),
+		'package-types' => array( 'wordpress-develop' => array( 'wordpress', 'wordpress-core' ) ),
 		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);
@@ -34,7 +34,6 @@ class WordPressDevelop extends SVNRepositoryConfig {
 	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
 		$package->setHomepage( 'https://wordpress.org/' );
 		$package->setDescription( 'WordPress develop repo offering source files, unit tests, and i18n tools.' );
-		$package->setType( 'wordpress-develop' );
 	}
 
 }

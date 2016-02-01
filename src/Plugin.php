@@ -2,6 +2,9 @@
 
 /**
  * TODO
+ * - switch out new filtering
+ * - add version fixer to svn repo
+ * - recognize package passed as CLI arg
  * - how are the non-ascii package names handled?
  * - allow directories of plugin zips to be specified !
  * - ssh into a server to get at zipped plugins
@@ -19,6 +22,7 @@ use Composer\Plugin\PluginEvents;
 use Composer\Config;
 use Composer\Installer\InstallerEvent;
 use Composer\Plugin\CommandEvent;
+use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
 
 
 class Plugin implements PluginInterface, EventSubscriberInterface {
@@ -27,6 +31,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	const extra_field = 'composer-wp';
 	protected $composer;
 	protected $io;
+	protected $extra;
 	// these are builtin repos that are named and can be enabled/disabled in composer.json
 	// the name maps to a class in Repository\Config\Builtin which defines its config options
 	protected $builtinRepos = array(
@@ -41,6 +46,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	protected $defaultRepos = array( 'plugins', 'core' );
 	// these repos are auto-enabled if their vendor names are found in the root package, unless otherwise disabled
 	protected $autoLoadRepos = array( 'themes', 'wpcom-themes', 'vip-plugins' );
+	// repo config classes by type
+	protected $configClass = array(
+		'wp-svn' => 'SVNRepositoryConfig',
+		'wp-zip' => 'ZipRepositoryConfig',
+	);
 
 	/**
 	 * Instruct the plugin manager to subscribe us to these events.
@@ -96,17 +106,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			$rootVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
 		}
 
-		// get the user-defined mapping of vendor aliases
-		$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : array();
-		// get all of the keys that point to a falsey value - these vendors will be disabled
-		$vendorDisable = array_keys( $vendorAliases, false );
-		// now remove those falsey values
-		$vendorAliases = array_filter( $vendorAliases );
-		// a filter used to remove disabled vendors from an array of vendors
-		$filterDisable = function( $value ) use ( $vendorDisable ) {
-			return !in_array( $value, $vendorDisable );
-		};
-
 		// get the configs for all the builtin repos and add vendor aliases
 		$builtin = array();
 		foreach ( $this->builtinRepos as $name => $class ) {
@@ -114,25 +113,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			$class = '\\' . __NAMESPACE__ . '\\Repository\\Config\\Builtin\\' . $class;
 			// instantiate the config class
 			$builtin[ $name ] = new $class();
-			$types = $builtin[ $name ]->get( 'types' );
-			// all vendors this repo recognizes, keyed on vendor
-			$allVendors = array();
-			// get the factory-set types
-			// add user-defined vendor aliases
-			foreach ( $types as $type => &$vendors ) {
-				// vendors could be a string
-				$vendors = (array) $vendors;
-				// get the vendor aliases for any vendors that match those in this type
-				$aliases = array_keys( array_intersect( $vendorAliases, $vendors ) );
-				// combine, and remove duplicates and disabled aliases
-				$vendors = array_filter( array_unique( array_merge( $vendors, $aliases ) ), $filterDisable );
-				// keep track of all the vendors to see if we will need to autoload
-				$allVendors += array_flip( $vendors );
-			}
-			$builtin[ $name ]->set( 'types', $types );
+			// resolve aliases, disabled vendors, etc.
+			$this->resolveVendors( $builtin[ $name ] );
 			// check if the vendor is represented in the root composer.json
 			// and enable this repo if it is one of the auto-load ones
-			if ( in_array( $name, $this->autoLoadRepos ) && count( array_intersect_key( $allVendors, $rootVendors ) ) ) {
+			if ( in_array( $name, $this->autoLoadRepos ) && count( array_intersect_key( $builtin[ $name ]->get( 'vendors' ), $rootVendors ) ) ) {
 				// this ensures that a repo is not enabled if it has been explicitly disabled by the user
 				$repos += [ $name => true ];
 			}
@@ -142,6 +127,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$rm = $this->composer->getRepositoryManager();
 		// add our repo classes as available ones to use
 		$rm->setRepositoryClass( 'wp-svn', '\\' . __NAMESPACE__ . '\\Repository\\SVNRepository' );
+		$rm->setRepositoryClass( 'wp-zip', '\\' . __NAMESPACE__ . '\\Repository\\ZipRepository' );
 
 		// create the repos!
 		foreach ( $repos as $name => $definition ) {
@@ -159,13 +145,65 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 						$repoConfig->set( $key, $value );
 					}
 				}
-				$repoConfig->set( 'plugin', $this );
-				// add the repo!
-				$rm->addRepository( $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
 			} else {
-				// @todo handle additional repo types
+				if ( !is_array( $definition ) ) {
+					throw new \UnexpectedValueException( 'Custom repository definition must be a JSON object.' );
+				}
+				if ( !isset( $definition['type'] ) ) {
+					throw new \UnexpectedValueException( 'Custom repository definition must declare a type.' );
+				}
+				if ( !isset( $this->configClass[ $definition['type'] ] ) ) {
+					throw new \UnexpectedValueException( 'Unknown repository type ' . $definition['type'] );
+				}
+				$configClass = '\\' . __NAMESPACE__ . '\\Repository\\Config\\' . $this->configClass[ $definition['type'] ];
+				$repoConfig = new $configClass( $definition );
+				$this->resolveVendors( $repoConfig );
+			}
+			// provide a reference to this plugin
+			$repoConfig->set( 'plugin', $this );
+			// add the repo!
+			$rm->addRepository( $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
+		}
+	}
+
+	/**
+	 * Take a repo config and add/remove vendors based on extra.
+	 * @param  RepositoryConfigInterface  $repoConfig
+	 */
+	protected function resolveVendors( RepositoryConfigInterface $repoConfig ) {
+		static $filterDisable, $vendorAliases, $vendorDisable;
+		// grab the vendor info from extra (only the first time)
+		if ( !isset( $filterDisable, $vendorAliases, $vendorDisable ) ) {
+			// get the user-defined mapping of vendor aliases
+			$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : array();
+			// get all of the keys that point to a falsey value - these vendors will be disabled
+			$vendorDisable = array_keys( $vendorAliases, false );
+			// now remove those falsey values
+			$vendorAliases = array_filter( $vendorAliases );
+			// a filter used to remove disabled vendors from an array of vendors
+			$filterDisable = function( $value ) use ( $vendorDisable ) {
+				return !in_array( $value, $vendorDisable );
+			};
+		}
+		$types = $repoConfig->get( 'package-types' ) ?: array();
+		// all vendors this repo recognizes, keyed on vendor
+		$allVendors = array();
+		// get the factory-set types
+		// add user-defined vendor aliases
+		foreach ( $types as $type => &$vendors ) {
+			// vendors could be a string
+			$vendors = (array) $vendors;
+			// get the vendor aliases for any vendors that match those in this type
+			$aliases = array_keys( array_intersect( $vendorAliases, $vendors ) );
+			// combine, and remove duplicates and disabled aliases
+			$vendors = array_filter( array_unique( array_merge( $vendors, $aliases ) ), $filterDisable );
+			// add the recognized vendors for this type for handy retrieval
+			foreach ( $vendors as $vendor ) {
+				$allVendors[ $vendor ] = $type;
 			}
 		}
+		$repoConfig->set( 'package-types', $types );
+		$repoConfig->set( 'vendors', $allVendors );
 	}
 
 	public function onCommand( CommandEvent $event ) {

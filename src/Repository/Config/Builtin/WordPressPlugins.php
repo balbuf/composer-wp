@@ -16,7 +16,7 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	protected $config = array(
 		'url' => 'http://plugins.svn.wordpress.org/',
 		'package-paths' => array( '/tags/', '/trunk' ),
-		'types' => array( 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ),
+		'package-types' => array( 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ),
 		'package-filter' => array( __CLASS__, 'filterPackage' ),
 	);
 

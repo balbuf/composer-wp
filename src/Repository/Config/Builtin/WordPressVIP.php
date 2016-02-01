@@ -14,7 +14,7 @@ class WordPressVIP extends SVNRepositoryConfig {
 		'url' => 'https://vip-svn.wordpress.com/plugins/',
 		'provider-paths' => array( '/', 'release-candidates/' ),
 		'package-paths' => array( '' ),
-		'types' => array( 'wordpress-plugin' => 'wordpress-vip' ),
+		'package-types' => array( 'wordpress-plugin' => 'wordpress-vip' ),
 		'name-filter' => array( __CLASS__, 'filterProvider' ),
 		'version-filter' => array( __CLASS__, 'filterVersion' ),
 	);

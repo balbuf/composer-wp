@@ -31,7 +31,7 @@ class SVNRepositoryConfig extends RepositoryConfig {
 		// i.e. {type} => {vendor}
 		// vendors can be a single string or an array of strings
 		// the requested virtual vendor of the dependency will dictate the package's type
-		'types' => array(),
+		'package-types' => array(),
 		// array of package defaults that will be the basis for the package definition
 		'package-defaults' => array(),
 		// array of values to override any fields after defaults and repo-determined are resolved
