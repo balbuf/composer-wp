@@ -9,6 +9,7 @@ use Composer\Package\Loader\ArrayLoader;
 use BalBuf\ComposerWP\Util\Svn as SvnUtil;
 use Composer\Package\PackageInterface;
 use Composer\DependencyResolver\Pool;
+use BalBuf\ComposerWP\Util\Util;
 use Composer\Semver\VersionParser;
 use Composer\Package\Link;
 use Composer\Semver\Constraint\Constraint;
@@ -156,7 +157,8 @@ class SVNRepository extends ComposerRepository {
 				// check the versions and add any good ones to the set
 				foreach ( SvnUtil::parseSvnList( $pkgRaw ) as $version ) {
 					// format the version identifier to be composer-compatible
-					$version = $this->filterVersion( $version, $name, $path, $providerUrl );
+					$version = Util::fixVersion( $version, 'dev-default' );
+					$version = Util::callFilter( $this->repoConfig['version-filter'], $version, $name, $path, $providerUrl );
 					// if the version string is empty, we don't take it
 					if ( strlen( $version ) ) {
 						$packages[ $version ] = trim( "$relPath/$version", '/' );
@@ -165,7 +167,8 @@ class SVNRepository extends ComposerRepository {
 			} else {
 				// otherwise we add as-is (no checking is performed to see if this reference really exists)
 				// @todo: perhaps add an optional check?
-				$version = $this->filterVersion( basename( $path ), $name, $path, $providerUrl );
+				$version = Util::fixVersion( basename( $path ), 'dev-default' );
+				$version = Util::callFilter( $this->repoConfig['version-filter'], $version, $name, $path, $providerUrl );
 				// if the version string is empty, we don't take it
 				if ( strlen( $version ) ) {
 					$packages[ $version ] = $relPath;
@@ -226,9 +229,7 @@ class SVNRepository extends ComposerRepository {
 				$package->setReplaces( $replaces );
 			}
 			// apply a filter to the package object
-			if ( is_callable( $this->repoConfig['package-filter'] ) ) {
-				call_user_func( $this->repoConfig['package-filter'], $package, $this->io, $this->plugin );
-			}
+			Util::callFilter( $this->repoConfig['package-filter'], $package, $this->io, $this->plugin );
 			// add the package object to the set
 			$this->providers[ $name ][ $version ] = $package;
 
@@ -244,16 +245,6 @@ class SVNRepository extends ComposerRepository {
 
 		return $this->providers[ $name ];
 
-	}
-
-	/**
-	 * Run the version through the filter, if set.
-	 */
-	protected function filterVersion( $version, $name, $path ) {
-		if ( is_callable( $this->repoConfig['version-filter'] ) ) {
-			$version = call_user_func( $this->repoConfig['version-filter'], $version, $name, $path );
-		}
-		return $version;
 	}
 
 	/**
@@ -284,7 +275,7 @@ class SVNRepository extends ComposerRepository {
 					} catch( \RuntimeException $e ) {
 						throw new \RuntimeException( "SVN Error: Could not retrieve provider listing from $url " . $e->getMessage() );
 					}
-					// cycle through to remove exclusions
+					// cycle through and add providers
 					foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
 						$this->addProvider( $name, $path, "$url/$name" );
 					}
@@ -306,9 +297,7 @@ class SVNRepository extends ComposerRepository {
 	 */
 	protected function addProvider( $name, $relPath, $absUrl ) {
 		// is there a provider name filter?
-		if ( is_callable( $this->repoConfig['name-filter'] ) ) {
-			$name = call_user_func( $this->repoConfig['name-filter'], $name, $relPath, $absUrl );
-		}
+		$name = Util::callFilter( $this->repoConfig['name-filter'], $name, $relPath, $absUrl );
 		// only add the provider if it is truthy
 		if ( $name ) {
 			// this provider listing is not used in solving, just for listing

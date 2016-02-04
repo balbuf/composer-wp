@@ -2,14 +2,21 @@
 
 /**
  * TODO
- * - switch out new filtering
- * - add version fixer to svn repo
- * - recognize package passed as CLI arg
+ * - scp transporter
+ * - use WP API for plugin and theme searching
+ * - alternatively use ZipArchive for local handling
  * - how are the non-ascii package names handled?
- * - allow directories of plugin zips to be specified !
- * - ssh into a server to get at zipped plugins
  * - github hosted plugins possibly missing composer.json
  * - composer autoload order
+ * - bookmarklet for getting the require line from a plugin/theme page
+ * - git alternative for core and develop
+ * - add unit tests
+ * - add readme
+ * - convert to PHP 5.4+ syntax for arrays
+ * - create a script to scan the headers of every plugin to identify anomolies
+ * - caching? cache the full plugin list and only check for new plugins?
+ * - GH search?
+ * - plain old directory repo
  */
 
 namespace BalBuf\ComposerWP;
@@ -17,15 +24,11 @@ namespace BalBuf\ComposerWP;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\Plugin\PluginEvents;
 use Composer\Config;
-use Composer\Installer\InstallerEvent;
-use Composer\Plugin\CommandEvent;
 use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
 
 
-class Plugin implements PluginInterface, EventSubscriberInterface {
+class Plugin implements PluginInterface {
 
 	// the plugin properties are defined in this 'extra' field
 	const extra_field = 'composer-wp';
@@ -51,17 +54,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'wp-svn' => 'SVNRepositoryConfig',
 		'wp-zip' => 'ZipRepositoryConfig',
 	);
-
-	/**
-	 * Instruct the plugin manager to subscribe us to these events.
-	 */
-	public static function getSubscribedEvents() {
-		return array(
-			PluginEvents::COMMAND => array(
-				array('onCommand', 0),
-			),
-		);
-	}
 
 	/**
 	 * Set up our repos.
@@ -99,11 +91,17 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$repos += array_fill_keys( $this->defaultRepos, true );
 
 		// get the vendors of the root requirements
-		// @todo - capture the package name if this is any command where a package name is passed, e.g. 'require'
 		$rootRequires = array_merge( $composer->getPackage()->getRequires(), $composer->getPackage()->getDevRequires() );
 		$rootVendors = array();
 		foreach ( $rootRequires as $link ) {
 			$rootVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
+		}
+		// capture the vendor(s) of any package names passed on the CLI, e.g. with 'require'
+		// the first two args represent the script and the command, so we don't need them
+		foreach ( array_slice( $GLOBALS['argv'], 2 ) as $arg ) {
+			if ( preg_match( '/^([a-z][\w-]+)\\//i', $arg, $matches ) ) {
+				$rootVendors[ strtolower( $matches[1] ) ] = true;
+			}
 		}
 
 		// get the configs for all the builtin repos and add vendor aliases
@@ -198,16 +196,10 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			// combine, and remove duplicates and disabled aliases
 			$vendors = array_filter( array_unique( array_merge( $vendors, $aliases ) ), $filterDisable );
 			// add the recognized vendors for this type for handy retrieval
-			foreach ( $vendors as $vendor ) {
-				$allVendors[ $vendor ] = $type;
-			}
+			$allVendors += array_fill_keys( $vendors, $type );
 		}
 		$repoConfig->set( 'package-types', $types );
 		$repoConfig->set( 'vendors', $allVendors );
-	}
-
-	public function onCommand( CommandEvent $event ) {
-
 	}
 
 	/**

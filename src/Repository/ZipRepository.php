@@ -43,6 +43,8 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 			$this->ssh = true;
 		}
 
+		// @todo URL validation
+
 		$this->io = $io;
 		$this->loader = new ArrayLoader();
 		$this->repoConfig = $repoConfig;
@@ -71,6 +73,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 			$dir = ProcessExecutor::escape( $dir );
 		}
 		// patterns specific to both plugins and themes
+		// 'inflating' is a line printed by unzip which indicates which internal file we are looking at
 		$patterns = array( 'inflating|Version|Description|Author|Author URI|License' );
 		// files within the archives to look at
 		$files = array();
@@ -89,12 +92,13 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		// assemble the command
 		// 1. `find` to get all zip files in the given directory
 		// 2. echo the filename so we can capture where the zip is
-		// 3. use `zipgrep` to scan the zip for WP theme or plugin headers
-		//    in style.css or *.php files, respectively, but only in the
-		//    top two directories within the zip
+		// 3. use `unzip` paired with `grep` to scan the zip for WP
+		//    theme or plugin headers in style.css or *.php files,
+		//    respectively, but only in the top two directories within the zip
 		$cmd = "find -L $dir $maxdepth -iname '*.zip' -exec echo '{}' ';' -exec sh -c "
 			. "\"unzip -c {} '*.php' -x '*/*/*' | grep -iE '^[ ^I*]*(" . implode( '|', $patterns ) . ")'\" ';'";
 
+		// if this is using ssh, wrap the command in an ssh call instead
 		if ( $this->ssh ) {
 			$cmd = 'ssh ' . ProcessExecutor::escape( $this->repoConfig['ssh'] ) . ' ' . ProcessExecutor::escape( $cmd );
 		}
@@ -126,6 +130,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 			}
 			// take the header information and create packages!
 			foreach ( $files as $url => $packages ) {
+				// we will only consider zips that have one package inside
 				if ( count( $packages ) === 1 ) {
 					// make sure all the keys are consistent
 					$headers = array_change_key_case( reset( $packages ), CASE_LOWER );
