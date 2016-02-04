@@ -27,8 +27,11 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		if ( !Util::cmdExists( 'find' ) ) {
 			throw new \RuntimeException( 'The WP Zip repository requires the `find` command' );
 		}
-		if ( !Util::cmdExists( 'zipgrep' ) ) {
-			throw new \RuntimeException( 'The WP Zip repository requires the `zipgrep` command' );
+		if ( !Util::cmdExists( 'unzip' ) ) {
+			throw new \RuntimeException( 'The WP Zip repository requires the `unzip` command' );
+		}
+		if ( !Util::cmdExists( 'grep' ) ) {
+			throw new \RuntimeException( 'The WP Zip repository requires the `grep` command' );
 		}
 		// get the config array
 		$repoConfig = $repoConfig->getConfig();
@@ -106,6 +109,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		$process = new ProcessExecutor( $this->io );
 
 		// execute the command and see if the response code indicates success
+		// @todo: do we need to catch any exceptions here?
 		if ( ( $code = $process->execute( $cmd, $output ) ) === 0 ) {
 			// store details about each of the files, which may be used to create a package
 			$files = [];
@@ -198,9 +202,9 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 						$package['license'] = $headers['license'];
 					}
 					// add dist information
-					// @todo: how do we handle ssh?
 					$package['dist'] = [
-						'url' => $url,
+						// for ssh, add a pseudo protocol that we will use to identify this as such
+						'url' => $this->ssh ? "ssh://{$this->repoConfig['ssh']}:$url" : $url,
 						'type' => 'zip',
 					];
 

@@ -19,7 +19,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
 	];
 
-	protected static $themeInfo = array();
+	protected static $themeInfo = [];
 
 	/**
 	 * Filter the package to add dist and other meta information.

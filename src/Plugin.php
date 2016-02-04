@@ -12,7 +12,6 @@
  * - git alternative for core and develop
  * - add unit tests
  * - add readme
- * - convert to PHP 5.4+ syntax for arrays
  * - create a script to scan the headers of every plugin to identify anomolies
  * - caching? cache the full plugin list and only check for new plugins?
  * - GH search?
@@ -24,11 +23,15 @@ namespace BalBuf\ComposerWP;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Config;
 use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
+use Composer\Plugin\PluginEvents;
+use Composer\Plugin\PreFileDownloadEvent;
+use BalBuf\ComposerWP\Util\SSHFilesystem;
 
 
-class Plugin implements PluginInterface {
+class Plugin implements PluginInterface, EventSubscriberInterface {
 
 	// the plugin properties are defined in this 'extra' field
 	const extra_field = 'composer-wp';
@@ -200,6 +203,31 @@ class Plugin implements PluginInterface {
 		}
 		$repoConfig->set( 'package-types', $types );
 		$repoConfig->set( 'vendors', $allVendors );
+	}
+
+	/**
+	 * Instruct the plugin manager to subscribe us to these events.
+	 */
+	public static function getSubscribedEvents() {
+		return [
+			PluginEvents::PRE_FILE_DOWNLOAD => [
+				[ 'setRfs', 0 ],
+			],
+		];
+	}
+
+	/**
+	 * Set the remote filesystem for scp files.
+	 */
+	public function setRfs( PreFileDownloadEvent $event ) {
+		static $rfs;
+		// is this an ssh url?
+		if ( strpos( $event->getProcessedUrl(), 'ssh://' ) === 0 ) {
+			if ( !$rfs ) {
+				$rfs = new SSHFilesystem( $this->io );
+			}
+			$event->setRemoteFilesystem( $rfs );
+		}
 	}
 
 	/**
