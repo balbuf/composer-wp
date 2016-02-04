@@ -13,6 +13,7 @@ class ZipRepositoryConfig extends RepositoryConfig {
 		// rel or absolute path
 		'url' => null,
 		// ssh [user@]hostname
+		// @todo: any other ssh options?
 		'ssh' => null,
 		// types and vendors that will be recognized
 		// {type} => {vendors}

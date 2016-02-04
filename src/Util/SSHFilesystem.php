@@ -26,22 +26,27 @@ class SSHFilesystem extends RemoteFilesystem {
 		}
 		// strip off the pseudo protocol
 		$fileUrl = substr( $fileUrl, 6 );
+		if ( $this->io->isVerbose() ) {
+			$this->io->write( "Downloading $fileUrl via ssh." );
+		}
 		// filename means we want to save
 		if ( $fileName ) {
-			echo 'downloading via scp';
 			$cmd = 'scp ' . ProcessExecutor::escape( $fileUrl ) . ' ' . ProcessExecutor::escape( $fileName );
 		} else {
-			// @todo: use ssh and cat
+			// otherwise just return the file contents
+			list( $host, $path ) = explode( ':', $fileUrl );
+			$cmd = 'ssh ' . ProcessExecutor::escape( $host ) . ' ' . ProcessExecutor::escape( 'cat ' . ProcessExecutor::escape( $path ) );
 		}
 		if ( $progress ) {
 			$this->io->writeError( '    Downloading: <comment>Connecting...</comment>', false );
 		}
 		// success?
 		// @todo: do we need to catch any exceptions here?
-		if ( $this->process->execute( $cmd ) === 0 ) {
+		if ( $this->process->execute( $cmd, $output ) === 0 ) {
 			if ( $progress ) {
 				$this->io->overwriteError( '    Downloading: <comment>100%</comment>' );
 			}
+			return $output;
 		} else {
 			// some sort of error - boo!
 			throw new \RuntimeException( "Could not download $fileUrl. " . $process->getErrorOutput() );

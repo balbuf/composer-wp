@@ -2,8 +2,8 @@
 
 /**
  * TODO
- * - scp transporter
  * - use WP API for plugin and theme searching
+ * - check the command and only load repos when necessary
  * - alternatively use ZipArchive for local handling
  * - how are the non-ascii package names handled?
  * - github hosted plugins possibly missing composer.json
