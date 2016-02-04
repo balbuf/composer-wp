@@ -13,14 +13,14 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressCore extends SVNRepositoryConfig {
 
-	protected $config = array(
+	protected $config = [
 		'url' => 'https://core.svn.wordpress.org/',
-		'provider-paths' => array( '' ),
-		'package-paths' => array( '/tags/', '/trunk' ),
-		'package-types' => array( 'wordpress-core' => array( 'wordpress', 'wordpress-core' ) ),
-		'name-filter' => array( __CLASS__, 'filterProvider' ),
-		'package-filter' => array( __CLASS__, 'filterPackage' ),
-	);
+		'provider-paths' => [ '' ],
+		'package-paths' => [ '/tags/', '/trunk' ],
+		'package-types' => [ 'wordpress-core' => [ 'wordpress', 'wordpress-core' ] ],
+		'name-filter' => [ __CLASS__, 'filterProvider' ],
+		'package-filter' => [ __CLASS__, 'filterPackage' ],
+	];
 
 	/**
 	 * The provider name will be empty, so fill it in.
@@ -48,11 +48,11 @@ class WordPressCore extends SVNRepositoryConfig {
 		// this is inconsequential to the solver, but it gets stored in composer.lock
 		// and appears when running `composer show vendor/package`
 		$package->setDescription( 'WordPress is web software you can use to create a beautiful website, blog, or app.' );
-		$package->setSupport( array(
+		$package->setSupport( [
 			'forum' => 'https://wordpress.org/support/',
 			'source' => 'https://core.trac.wordpress.org/browser/' . $package->getSourceReference(),
 			'docs' => 'https://codex.wordpress.org/Main_Page',
-		) );
+		] );
 		$package->setHomepage( 'https://wordpress.org/' );
 	}
 

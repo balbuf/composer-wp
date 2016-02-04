@@ -13,14 +13,14 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressPlugins extends SVNRepositoryConfig {
 
-	protected $config = array(
-		'url' => 'http://plugins.svn.wordpress.org/',
-		'package-paths' => array( '/tags/', '/trunk' ),
-		'package-types' => array( 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ),
-		'package-filter' => array( __CLASS__, 'filterPackage' ),
-	);
+	protected $config = [
+		'url' => 'https://plugins.svn.wordpress.org/',
+		'package-paths' => [ '/tags/', '/trunk' ],
+		'package-types' => [ 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ],
+		'package-filter' => [ __CLASS__, 'filterPackage' ],
+	];
 
-	protected static $pluginInfo = array();
+	protected static $pluginInfo = [];
 
 	/**
 	 * Filter the package to add dist and other meta information.
@@ -45,12 +45,12 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				$package->setDescription( $info['short_description'] );
 			}
 			if ( !empty( $info['contributors'] ) ) {
-				$authors = array();
+				$authors = [];
 				foreach ( $info['contributors'] as $name => $homepage ) {
-					$authors[] = array(
+					$authors[] = [
 						'name' => $name,
 						'homepage' => $homepage,
-					);
+					];
 				}
 				$package->setAuthors( $authors );
 			}
@@ -59,11 +59,11 @@ class WordPressPlugins extends SVNRepositoryConfig {
 			}
 			// URL-ready slug
 			$pluginSlug = urlencode( $shortName );
-			$package->setSupport( array(
+			$package->setSupport( [
 				'forum' => "https://wordpress.org/support/plugin/$pluginSlug/",
 				'source' => "http://plugins.trac.wordpress.org/browser/$pluginSlug/",
 				'docs' => "https://wordpress.org/plugins/$pluginSlug/",
-			) );
+			] );
 			$package->setHomepage( "https://wordpress.org/plugins/$pluginSlug/" );
 		} else if ( $info === null ) {
 			// null means the package is no longer active

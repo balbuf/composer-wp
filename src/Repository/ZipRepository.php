@@ -74,9 +74,9 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		}
 		// patterns specific to both plugins and themes
 		// 'inflating' is a line printed by unzip which indicates which internal file we are looking at
-		$patterns = array( 'inflating|Version|Description|Author|Author URI|License' );
+		$patterns = [ 'inflating|Version|Description|Author|Author URI|License' ];
 		// files within the archives to look at
-		$files = array();
+		$files = [];
 		// look for plugins?
 		if ( isset( $this->repoConfig['package-types']['wordpress-plugin'] ) || isset( $this->repoConfig['package-types']['wordpress-muplugin'] ) ) {
 			$patterns[] = 'Plugin Name|Plugin URI';
@@ -108,7 +108,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		// execute the command and see if the response code indicates success
 		if ( ( $code = $process->execute( $cmd, $output ) ) === 0 ) {
 			// store details about each of the files, which may be used to create a package
-			$files = array();
+			$files = [];
 			$zipFile = null;
 			$fileName = null;
 			// parse the response line-by-line to pluck out the header information
@@ -137,7 +137,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 					// file within the zip where the headers were found
 					$fileName = key( $packages );
 					// the info used to create the package
-					$package = array();
+					$package = [];
 
 					// we have a theme!
 					if ( !empty( $headers['theme name'] ) ) {
@@ -199,10 +199,10 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 					}
 					// add dist information
 					// @todo: how do we handle ssh?
-					$package['dist'] = array(
+					$package['dist'] = [
 						'url' => $url,
 						'type' => 'zip',
-					);
+					];
 
 					// add a new package for each vendor alias of the given type
 					// @todo: maybe use links instead? or in addition to?

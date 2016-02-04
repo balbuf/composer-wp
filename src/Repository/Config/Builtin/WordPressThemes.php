@@ -13,11 +13,11 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressThemes extends SVNRepositoryConfig {
 
-	protected $config = array(
+	protected $config = [
 		'url' => 'https://themes.svn.wordpress.org/',
-		'package-types' => array( 'wordpress-theme' => 'wordpress-theme' ),
-		'package-filter' => array( __CLASS__, 'filterPackage' ),
-	);
+		'package-types' => [ 'wordpress-theme' => 'wordpress-theme' ],
+		'package-filter' => [ __CLASS__, 'filterPackage' ],
+	];
 
 	protected static $themeInfo = array();
 
@@ -44,18 +44,18 @@ class WordPressThemes extends SVNRepositoryConfig {
 				$package->setDescription( $info['sections']['description'] );
 			}
 			if ( !empty( $info['author'] ) ) {
-				$package->setAuthors( array( array( 'name' => $info['author'] ) ) );
+				$package->setAuthors( [ [ 'name' => $info['author'] ] ] );
 			}
 			if ( !empty( $info['tags'] ) ) {
 				$package->setKeywords( $info['tags'] );
 			}
 			// URL-ready slug
 			$slug = urlencode( $shortName );
-			$package->setSupport( array(
+			$package->setSupport( [
 				'forum' => "https://wordpress.org/support/theme/$slug/",
 				'source' => "https://themes.trac.wordpress.org/browser/$slug/",
 				'docs' => "https://wordpress.org/themes/$slug/",
-			) );
+			] );
 			$package->setHomepage( "https://wordpress.org/themes/$slug/" );
 		} else if ( $info === false ) {
 			// false means the package is no longer active

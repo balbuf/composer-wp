@@ -11,34 +11,34 @@ class SVNRepositoryConfig extends RepositoryConfig {
 	const repoType = 'wp-svn';
 	// the repo specific config
 	protected $config;
-	protected static $configDefaults = array(
+	protected static $configDefaults = [
 		// base url(s)
 		'url' => null,
 		// paths to specific providers or to listing of providers, relative to url
 		// paths ending with a slash are considered a listing and will use `svn ls` to retrieve the providers
 		// otherwise, the path is taken at face value to point to a specific provider
 		// the provider name that is used will only be the basename, e.g. path/basename
-		'provider-paths' => array( '/' ),
+		'provider-paths' => [ '/' ],
 		// filter provider names (especially helpful when there could be conflicting names in different dirs)
 		'name-filter' => null,
 		// paths to specific packages or listing of packages within the providers
 		// this is relative to the provider url
-		'package-paths' => array( '/' ),
+		'package-paths' => [ '/' ],
 		// manipulate version identifiers to make them parsable by composer
 		// if the version is replaced with an empty string, it will be excluded
-		'version-filter' => array( __CLASS__, 'filterVersion' ),
+		'version-filter' => [ __CLASS__, 'filterVersion' ],
 		// mapping of supported package types to virtual vendor(s)
 		// i.e. {type} => {vendor}
 		// vendors can be a single string or an array of strings
 		// the requested virtual vendor of the dependency will dictate the package's type
-		'package-types' => array(),
+		'package-types' => [],
 		// array of package defaults that will be the basis for the package definition
-		'package-defaults' => array(),
+		'package-defaults' => [],
 		// array of values to override any fields after defaults and repo-determined are resolved
-		'package-overrides' => array(),
+		'package-overrides' => [],
 		// a function which is called on the package object after it is created and before used by the solver
 		'package-filter' => null,
-	);
+	];
 
 	/**
 	 * Default version filter: replace trunk with dev-trunk

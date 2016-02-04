@@ -36,7 +36,7 @@ class SVNRepository extends ComposerRepository {
 		// @TODO: add event dispatcher?
 		$repoConfig = $repoConfig->getConfig();
 		// check url immediately - can't do anything without it
-		$urls = array();
+		$urls = [];
 		foreach ( (array) $repoConfig['url'] as $url ) {
 			if ( ( $urlParts = parse_url( $url ) ) === false || empty( $urlParts['scheme'] ) ) {
 				continue;
@@ -85,7 +85,7 @@ class SVNRepository extends ComposerRepository {
 				return $packages;
 			}
 		}
-		return array();
+		return [];
 	}
 
 	/**
@@ -110,13 +110,13 @@ class SVNRepository extends ComposerRepository {
 	public function whatProvides( Pool $pool, $name ) {
 		// split on vendor and name
 		if ( count( $parts = explode( '/', $name ) ) !== 2 ) {
-			return array();
+			return [];
 		}
 		list( $vendor, $shortName ) = $parts;
 
 		// does the vendor match one of our virtual vendors?
 		if ( !isset( $this->repoConfig['vendors'][ $vendor ] ) ) {
-			return array();
+			return [];
 		}
 
 		// do we already have its packages?
@@ -129,13 +129,13 @@ class SVNRepository extends ComposerRepository {
 
 		// does the shortname even exist in this repo?
 		if ( !isset( $this->providerHash[ $shortName ] ) ) {
-			return array();
+			return [];
 		}
 
 		// base url for the requested set of packages (i.e. the provider)
 		// there should be no trailing slash
 		$providerUrl = $this->providerHash[ $shortName ];
-		$packages = array();
+		$packages = [];
 
 		// get a listing of available packages
 		// these are paths under the provider url where we should find actual packages
@@ -181,7 +181,7 @@ class SVNRepository extends ComposerRepository {
 		// which allows the package type to be changed in composer.json,
 		// i.e. the type that is being removed AND the type that is being installed
 		// both have to exist during the solving
-		$this->providers[ $name ] = array();
+		$this->providers[ $name ] = [];
 
 		// create a package for each tag
 		foreach ( $packages as $version => $reference ) {
@@ -189,21 +189,21 @@ class SVNRepository extends ComposerRepository {
 				continue;
 			}
 			// first, setup the repo-determined package properties
-			$data = array(
+			$data = [
 				'name' => $name,
 				'version' => $version,
 				'type' => $this->repoConfig['vendors'][ $vendor ],
-				'source' => array(
+				'source' => [
 					'type' => 'svn',
 					'url' => "$providerUrl/",
 					// the reference cannot be empty or composer will throw an exception
 					// an empty reference and a single slash are effectively the same
 					'reference' => $reference ?: '/',
-				),
-				'require' => array(
+				],
+				'require' => [
 					'oomphinc/composer-installers-extender' => '~1.0',
-				),
-			);
+				],
+			];
 			// next, fill in any defaults that were missing
 			if ( !empty( $this->repoConfig['package-defaults'] ) ) {
 				$data = array_merge( $this->repoConfig['package-defaults'], $data );
@@ -217,7 +217,7 @@ class SVNRepository extends ComposerRepository {
 			$package->setRepository( $this );
 			// add "replaces" array for any other vendors that this repository supports
 			if ( count( $this->repoConfig['vendors'] ) > 1 ) {
-				$replaces = array();
+				$replaces = [];
 				$constraint = new Constraint( '=', $package->getVersion() );
 				foreach ( $this->repoConfig['vendors'] as $vendorName => $type ) {
 					// it doesn't replace itself
@@ -256,7 +256,7 @@ class SVNRepository extends ComposerRepository {
 			return;
 		}
 		// start out empty
-		$this->providerListing = $this->providerHash = array();
+		$this->providerListing = $this->providerHash = [];
 
 		// cycle through the urls
 		foreach ( $this->repoConfig['url'] as $baseUrl ) {

@@ -34,7 +34,7 @@ class Svn {
 	 * @return array           items returned (could be empty)
 	 */
 	static function parseSvnList( $response ) {
-		$list = array();
+		$list = [];
 		// break on space, newline, or forward slash
 		// leaving us with perfectly trimmed names
 		$token = " \n\r/";

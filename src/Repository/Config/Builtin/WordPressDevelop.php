@@ -13,14 +13,14 @@ use Composer\Plugin\PluginInterface;
 
 class WordPressDevelop extends SVNRepositoryConfig {
 
-	protected $config = array(
+	protected $config = [
 		'url' => 'https://develop.svn.wordpress.org/',
-		'provider-paths' => array( '' ),
-		'package-paths' => array( '/tags/', '/trunk' ),
-		'package-types' => array( 'wordpress-develop' => array( 'wordpress', 'wordpress-core' ) ),
-		'name-filter' => array( __CLASS__, 'filterProvider' ),
-		'package-filter' => array( __CLASS__, 'filterPackage' ),
-	);
+		'provider-paths' => [ '' ],
+		'package-paths' => [ '/tags/', '/trunk' ],
+		'package-types' => [ 'wordpress-develop' => [ 'wordpress', 'wordpress-core' ] ],
+		'name-filter' => [ __CLASS__, 'filterProvider' ],
+		'package-filter' => [ __CLASS__, 'filterPackage' ],
+	];
 
 	/**
 	 * The provider name will be empty, so fill it in.

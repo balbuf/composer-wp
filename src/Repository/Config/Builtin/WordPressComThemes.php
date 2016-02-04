@@ -10,14 +10,14 @@ use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 
 class WordPressComThemes extends SVNRepositoryConfig {
 
-	protected $config = array(
+	protected $config = [
 		'url' => 'https://wpcom-themes.svn.automattic.com/',
-		'provider-paths' => array( '/' ),
-		'package-paths' => array( '' ),
-		'package-types' => array( 'wordpress-theme' => 'wordpress-com' ),
-		'name-filter' => array( __CLASS__, 'filterProvider' ),
-		'version-filter' => array( __CLASS__, 'filterVersion' ),
-	);
+		'provider-paths' => [ '/' ],
+		'package-paths' => [ '' ],
+		'package-types' => [ 'wordpress-theme' => 'wordpress-com' ],
+		'name-filter' => [ __CLASS__, 'filterProvider' ],
+		'version-filter' => [ __CLASS__, 'filterVersion' ],
+	];
 
 	static function filterProvider( $name, $path, $url ) {
 		if ( $name === '.ignore' ) {

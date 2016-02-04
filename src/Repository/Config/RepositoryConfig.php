@@ -10,9 +10,9 @@ class RepositoryConfig implements RepositoryConfigInterface {
 
 	const repoType = null;
 	protected $config;
-	protected static $configDefaults = array();
+	protected static $configDefaults = [];
 
-	function __construct( $config = array() ) {
+	function __construct( $config = [] ) {
 		// replace these defaults into the config values of the instantiated child class
 		$this->config = array_replace( static::$configDefaults, $this->config ?: $config );
 	}

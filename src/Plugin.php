@@ -37,23 +37,23 @@ class Plugin implements PluginInterface {
 	protected $extra;
 	// these are builtin repos that are named and can be enabled/disabled in composer.json
 	// the name maps to a class in Repository\Config\Builtin which defines its config options
-	protected $builtinRepos = array(
+	protected $builtinRepos = [
 		'plugins' => 'WordPressPlugins',
 		'themes' => 'WordPressThemes',
 		'core' => 'WordPressCore',
 		'develop' => 'WordPressDevelop',
 		'wpcom-themes' => 'WordPressComThemes',
 		'vip-plugins' => 'WordPressVIP',
-	);
+	];
 	// these repos are enabled by default, unless otherwise disabled
-	protected $defaultRepos = array( 'plugins', 'core' );
+	protected $defaultRepos = [ 'plugins', 'core' ];
 	// these repos are auto-enabled if their vendor names are found in the root package, unless otherwise disabled
-	protected $autoLoadRepos = array( 'themes', 'wpcom-themes', 'vip-plugins' );
+	protected $autoLoadRepos = [ 'themes', 'wpcom-themes', 'vip-plugins' ];
 	// repo config classes by type
-	protected $configClass = array(
+	protected $configClass = [
 		'wp-svn' => 'SVNRepositoryConfig',
 		'wp-zip' => 'ZipRepositoryConfig',
-	);
+	];
 
 	/**
 	 * Set up our repos.
@@ -65,10 +65,10 @@ class Plugin implements PluginInterface {
 		// the extra data from the composer.json
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
-		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : array();
+		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : [];
 
 		// these will be all the repos we try to enable
-		$repos = array();
+		$repos = [];
 		// get the user-defined repos first
 		if ( !empty( $this->extra['repositories'] ) ) {
 			if ( !is_array( $this->extra['repositories'] ) ) {
@@ -92,7 +92,7 @@ class Plugin implements PluginInterface {
 
 		// get the vendors of the root requirements
 		$rootRequires = array_merge( $composer->getPackage()->getRequires(), $composer->getPackage()->getDevRequires() );
-		$rootVendors = array();
+		$rootVendors = [];
 		foreach ( $rootRequires as $link ) {
 			$rootVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
 		}
@@ -105,7 +105,7 @@ class Plugin implements PluginInterface {
 		}
 
 		// get the configs for all the builtin repos and add vendor aliases
-		$builtin = array();
+		$builtin = [];
 		foreach ( $this->builtinRepos as $name => $class ) {
 			// add the fully qualified namespace to the class name
 			$class = '\\' . __NAMESPACE__ . '\\Repository\\Config\\Builtin\\' . $class;
@@ -173,7 +173,7 @@ class Plugin implements PluginInterface {
 		// grab the vendor info from extra (only the first time)
 		if ( !isset( $filterDisable, $vendorAliases, $vendorDisable ) ) {
 			// get the user-defined mapping of vendor aliases
-			$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : array();
+			$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : [];
 			// get all of the keys that point to a falsey value - these vendors will be disabled
 			$vendorDisable = array_keys( $vendorAliases, false );
 			// now remove those falsey values
@@ -183,9 +183,9 @@ class Plugin implements PluginInterface {
 				return !in_array( $value, $vendorDisable );
 			};
 		}
-		$types = $repoConfig->get( 'package-types' ) ?: array();
+		$types = $repoConfig->get( 'package-types' ) ?: [];
 		// all vendors this repo recognizes, keyed on vendor
-		$allVendors = array();
+		$allVendors = [];
 		// get the factory-set types
 		// add user-defined vendor aliases
 		foreach ( $types as $type => &$vendors ) {

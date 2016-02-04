@@ -10,14 +10,14 @@ use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 
 class WordPressVIP extends SVNRepositoryConfig {
 
-	protected $config = array(
+	protected $config = [
 		'url' => 'https://vip-svn.wordpress.com/plugins/',
-		'provider-paths' => array( '/', 'release-candidates/' ),
-		'package-paths' => array( '' ),
-		'package-types' => array( 'wordpress-plugin' => 'wordpress-vip' ),
-		'name-filter' => array( __CLASS__, 'filterProvider' ),
-		'version-filter' => array( __CLASS__, 'filterVersion' ),
-	);
+		'provider-paths' => [ '/', 'release-candidates/' ],
+		'package-paths' => [ '' ],
+		'package-types' => [ 'wordpress-plugin' => 'wordpress-vip' ],
+		'name-filter' => [ __CLASS__, 'filterProvider' ],
+		'version-filter' => [ __CLASS__, 'filterVersion' ],
+	];
 
 	static function filterProvider( $name, $path, $url ) {
 		if ( $name === 'release-candidates' ) {
