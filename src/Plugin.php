@@ -2,8 +2,8 @@
 
 /**
  * TODO
- * - use WP API for plugin and theme searching
  * - check the command and only load repos when necessary
+ * - load all auto-load repos for search command
  * - alternatively use ZipArchive for local handling
  * - how are the non-ascii package names handled?
  * - github hosted plugins possibly missing composer.json

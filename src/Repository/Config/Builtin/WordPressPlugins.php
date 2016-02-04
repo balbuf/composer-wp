@@ -10,14 +10,19 @@ use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use BalBuf\ComposerWP\Repository\SVNRepository;
+use BalBuf\ComposerWP\Util\Util;
 
 class WordPressPlugins extends SVNRepositoryConfig {
+
+	const searchUrl = 'http://api.wordpress.org/plugins/info/1.0/';
 
 	protected $config = [
 		'url' => 'https://plugins.svn.wordpress.org/',
 		'package-paths' => [ '/tags/', '/trunk' ],
 		'package-types' => [ 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ],
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
+		'search-handler' => [ __CLASS__, 'search' ],
 	];
 
 	protected static $pluginInfo = [];
@@ -109,6 +114,42 @@ class WordPressPlugins extends SVNRepositoryConfig {
 			}
 		}
 		return static::$pluginInfo[ $plugin ];
+	}
+
+	/**
+	 * Query the WP plugins api for results.
+	 * @param  string $query search query
+	 * @return mixed        results or original query to fallback to provider search
+	 */
+	static function search( $query, IOInterface $io, SVNRepository $repo ) {
+		// data to send to the api
+		$data = [ 'action' => 'query_plugins', 'request' => serialize( (object) [ 'search' => $query ] ) ];
+		// create stream context for file_get_contents
+		$ctx = stream_context_create( [
+			'http' => [
+				'method' => 'POST',
+				'header' => 'Content-type: application/x-www-form-urlencoded',
+				'content' => http_build_query( $data ),
+			]
+		] );
+		// query the api
+		if ( $response = file_get_contents( self::searchUrl, false, $ctx ) ) {
+			// @todo file get contents error handling
+			$results = unserialize( $response );
+			if ( !empty( $results->plugins ) ) {
+				$vendor = $repo->getDefaultVendor();
+				$out = [];
+				foreach ( $results->plugins as $plugin ) {
+					$out[] = [
+						'name' => "$vendor/{$plugin->slug}",
+						'description' => Util::truncate( strip_tags( $plugin->short_description ), 100 ),
+						'url' => $plugin->homepage,
+					];
+				}
+				return $out;
+			}
+		}
+		return $query;
 	}
 
 }

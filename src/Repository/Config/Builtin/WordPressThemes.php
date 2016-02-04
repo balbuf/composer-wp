@@ -10,13 +10,18 @@ use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use BalBuf\ComposerWP\Repository\SVNRepository;
+use BalBuf\ComposerWP\Util\Util;
 
 class WordPressThemes extends SVNRepositoryConfig {
+
+	const searchUrl = 'https://api.wordpress.org/themes/info/1.1/';
 
 	protected $config = [
 		'url' => 'https://themes.svn.wordpress.org/',
 		'package-types' => [ 'wordpress-theme' => 'wordpress-theme' ],
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
+		'search-handler' => [ __CLASS__, 'search' ],
 	];
 
 	protected static $themeInfo = [];
@@ -101,6 +106,38 @@ class WordPressThemes extends SVNRepositoryConfig {
 			}
 		}
 		return static::$themeInfo[ $theme ];
+	}
+
+	/**
+	 * Query the WP theme api for results.
+	 * @param  string $query search query
+	 * @return mixed        results or original query to fallback to provider search
+	 */
+	static function search( $query, IOInterface $io, SVNRepository $repo ) {
+		$response = file_get_contents( self::searchUrl . '?action=query_themes&request[search]=' . urlencode( $query ) );
+		// @todo error handling for file get contents
+		$results = json_decode( $response, true );
+		if ( json_last_error() === \JSON_ERROR_NONE ) {
+			if ( !empty( $results['themes'] ) ) {
+				$out = [];
+				$vendor = $repo->getDefaultVendor();
+				foreach ( $results['themes'] as $theme ) {
+					// fairly confident all of the fields below will be provided for a given theme
+					$out[] = [
+						'name' => "$vendor/{$theme['slug']}",
+						// truncate as some of these descriptions can get out of hand
+						'description' => Util::truncate( strip_tags( $theme['description'] ), 100 ),
+						'url' => $theme['homepage'],
+					];
+				}
+				return $out;
+			}
+		} else {
+			if ( $io->isDebug() ) {
+				$io->writeError( 'JSON error occured: ' . json_last_error_msg() );
+			}
+		}
+		return $query;
 	}
 
 }

@@ -100,4 +100,15 @@ class Util {
 		return $value;
 	}
 
+	/**
+	 * Take a string and truncate at the desired length, appending an optional marker.
+	 * @param  string $string the value to truncate
+	 * @param  int    $length length at which to truncate
+	 * @param  string $marker string to append onto truncated value
+	 * @return string         the truncated value
+	 */
+	static function truncate( $string, $length, $marker = '...' ) {
+		return strlen( $string ) > $length ? substr( $string, 0, $length ) . $marker : $string;
+	}
+
 }

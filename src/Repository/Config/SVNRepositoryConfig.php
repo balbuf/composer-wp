@@ -38,6 +38,8 @@ class SVNRepositoryConfig extends RepositoryConfig {
 		'package-overrides' => [],
 		// a function which is called on the package object after it is created and before used by the solver
 		'package-filter' => null,
+		// take over the search functionality with a custom handler
+		'search-handler' => null,
 	];
 
 	/**

@@ -88,6 +88,26 @@ class SVNRepository extends ComposerRepository {
 		return [];
 	}
 
+	public function search( $query, $mode = 0 ) {
+		// if the query exactly matches one of our vendors, return the whole list!
+		if ( isset( $this->repoConfig['vendors'][ $query ] ) ) {
+			// make sure the vendor that shows is the vendor they want
+			$this->defaultVendor = $query;
+			$out = [];
+			foreach ( $this->getProviderNames() as $provider ) {
+				$out[] = [ 'name' => $provider ];
+			}
+			return $out;
+		}
+		// try running the search handler - see if we get anything
+		$results = Util::callFilter( $this->repoConfig['search-handler'], $query, $this->io, $this );
+		// if the these are the same, default to the normal provider name search
+		if ( $results === $query ) {
+			return parent::search( $query, $mode );
+		}
+		return $results;
+	}
+
 	/**
 	 * Get an array of provider names for this repository.
 	 * @return array provider names
@@ -305,6 +325,14 @@ class SVNRepository extends ComposerRepository {
 			$this->providerListing[] = "{$this->defaultVendor}/$name";
 			$this->providerHash[ $name ] = $absUrl;
 		}
+	}
+
+	/**
+	 * Useful for search handlers in returning results.
+	 * @return string the default vendor to display in search listings
+	 */
+	function getDefaultVendor() {
+		return $this->defaultVendor;
 	}
 
 	/**
