@@ -122,6 +122,9 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	 * @return mixed        results or original query to fallback to provider search
 	 */
 	static function search( $query, IOInterface $io, SVNRepository $repo ) {
+		if ( $io->isVerbose() ) {
+			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
+		}
 		// data to send to the api
 		$data = [ 'action' => 'query_plugins', 'request' => serialize( (object) [ 'search' => $query ] ) ];
 		// create stream context for file_get_contents

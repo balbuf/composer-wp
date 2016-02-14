@@ -114,6 +114,9 @@ class WordPressThemes extends SVNRepositoryConfig {
 	 * @return mixed        results or original query to fallback to provider search
 	 */
 	static function search( $query, IOInterface $io, SVNRepository $repo ) {
+		if ( $io->isVerbose() ) {
+			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
+		}
 		$response = file_get_contents( self::searchUrl . '?action=query_themes&request[search]=' . urlencode( $query ) );
 		// @todo error handling for file get contents
 		$results = json_decode( $response, true );
