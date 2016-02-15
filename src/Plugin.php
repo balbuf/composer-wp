@@ -2,8 +2,8 @@
 
 /**
  * TODO
- * - check the command and only load repos when necessary
- * - load all auto-load repos for search command
+ * - for search commands that use APIs, also search on package name
+ * - global config for vendor aliases / repos / etc?
  * - alternatively use ZipArchive for local handling
  * - how are the non-ascii package names handled?
  * - github hosted plugins possibly missing composer.json
@@ -48,15 +48,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		'wpcom-themes' => 'WordPressComThemes',
 		'vip-plugins' => 'WordPressVIP',
 	];
-	// these repos are enabled by default, unless otherwise disabled
-	protected $defaultRepos = [ 'plugins', 'core' ];
 	// these repos are auto-enabled if their vendor names are found in the root package, unless otherwise disabled
-	protected $autoLoadRepos = [ 'themes', 'wpcom-themes', 'vip-plugins' ];
+	protected $autoLoadRepos = [ 'plugins', 'core', 'themes', 'wpcom-themes', 'vip-plugins' ];
 	// repo config classes by type
 	protected $configClass = [
 		'wp-svn' => 'SVNRepositoryConfig',
 		'wp-zip' => 'ZipRepositoryConfig',
 	];
+	// commands that are relevant to this plugin
+	// @todo: is this list comprehensive?
+	protected $commands = [ 'install', 'require', 'update', 'show', 'search', 'init', 'create-project' ];
 
 	/**
 	 * Set up our repos.
@@ -69,6 +70,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
 		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : [];
+
+		// let's reflect for a moment
+		// we need to access the InputInterface, which is a protected member of $io
+		$reflection = new \ReflectionProperty( $io, 'input' );
+		$reflection->setAccessible( true );
+		$input = $reflection->getValue( $io );
+		// if it is not a command we care about, bail early
+		if ( !in_array( $command = $input->getArgument( 'command' ), $this->commands ) ) {
+			return;
+		}
 
 		// these will be all the repos we try to enable
 		$repos = [];
@@ -90,20 +101,29 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				}
 			}
 		}
-		// add the default repos - they will only be added if not previously defined
-		$repos += array_fill_keys( $this->defaultRepos, true );
 
-		// get the vendors of the root requirements
-		$rootRequires = array_merge( $composer->getPackage()->getRequires(), $composer->getPackage()->getDevRequires() );
-		$rootVendors = [];
-		foreach ( $rootRequires as $link ) {
-			$rootVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
-		}
-		// capture the vendor(s) of any package names passed on the CLI, e.g. with 'require'
-		// the first two args represent the script and the command, so we don't need them
-		foreach ( array_slice( $GLOBALS['argv'], 2 ) as $arg ) {
-			if ( preg_match( '/^([a-z][\w-]+)\\//i', $arg, $matches ) ) {
-				$rootVendors[ strtolower( $matches[1] ) ] = true;
+		// load all the auto-load repos for these commands
+		// otherwise figure out which vendors are needed
+		if ( !( $loadAll = in_array( $command, [ 'search', 'init' ] ) ) ) {
+			// get the root requirements to pluck out the vendor names
+			$rootRequires = array_merge( $composer->getPackage()->getRequires(), $composer->getPackage()->getDevRequires() );
+			$neededVendors = [];
+			foreach ( $rootRequires as $link ) {
+				$neededVendors[ strstr( $link->getTarget(), '/', true ) ] = true;
+			}
+			// capture package names passed as CLI args
+			if ( $input->hasArgument( 'packages' ) ) {
+				$packages = $input->getArgument( 'packages' );
+			} else if ( $input->hasArgument( 'package' ) ) {
+				$packages = (array) ( $input->getArgument( 'package' ) ?: [] );
+			} else {
+				$packages = [];
+			}
+			// get the vendor(s) of the passed package names
+			foreach ( $packages as $package ) {
+				if ( preg_match( '/^([a-z][\w-]+)\\//i', $package, $matches ) ) {
+					$neededVendors[ strtolower( $matches[1] ) ] = true;
+				}
 			}
 		}
 
@@ -118,7 +138,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			$this->resolveVendors( $builtin[ $name ] );
 			// check if the vendor is represented in the root composer.json
 			// and enable this repo if it is one of the auto-load ones
-			if ( in_array( $name, $this->autoLoadRepos ) && count( array_intersect_key( $builtin[ $name ]->get( 'vendors' ), $rootVendors ) ) ) {
+			if ( in_array( $name, $this->autoLoadRepos ) && ( $loadAll || count( array_intersect_key( $builtin[ $name ]->get( 'vendors' ), $neededVendors ) ) ) ) {
 				// this ensures that a repo is not enabled if it has been explicitly disabled by the user
 				$repos += [ $name => true ];
 			}
