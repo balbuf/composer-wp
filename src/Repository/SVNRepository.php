@@ -368,6 +368,14 @@ class SVNRepository extends ComposerRepository {
 	}
 
 	/**
+	 * Get the cache for this repo.
+	 * @return Cache
+	 */
+	function getCache() {
+		return $this->cache;
+	}
+
+	/**
 	 * No-op
 	 */
 	function resetPackageIds() {}

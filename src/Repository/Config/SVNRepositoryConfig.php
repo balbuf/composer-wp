@@ -26,7 +26,7 @@ class SVNRepositoryConfig extends RepositoryConfig {
 		'package-paths' => [ '/' ],
 		// manipulate version identifiers to make them parsable by composer
 		// if the version is replaced with an empty string, it will be excluded
-		'version-filter' => [ __CLASS__, 'filterVersion' ],
+		'version-filter' => [ __CLASS__, 'defaultFilterVersion' ],
 		// mapping of supported package types to virtual vendor(s)
 		// i.e. {type} => {vendor}
 		// vendors can be a single string or an array of strings
@@ -53,7 +53,7 @@ class SVNRepositoryConfig extends RepositoryConfig {
 	 * @param  string $version found version
 	 * @return string          filtered version
 	 */
-	static function filterVersion( $version ) {
+	static function defaultFilterVersion( $version ) {
 		return preg_replace( '/^trunk$/', 'dev-trunk', $version );
 	}
 

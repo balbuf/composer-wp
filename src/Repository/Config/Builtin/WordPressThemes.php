@@ -36,7 +36,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 	 * Filter the package to add dist and other meta information.
 	 */
 	function filterPackage( CompletePackage $package ) {
-		list( $vendor, $shortName ) = explode( '/',  $package->getName() );
+		list( $vendor, $shortName ) = explode( '/', $package->getName() );
 		// try to get the theme info - may return an array or null/false
 		try {
 			$info = $this->getThemeInfo( $shortName );
