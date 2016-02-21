@@ -8,37 +8,48 @@ namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
-use Composer\IO\IOInterface;
-use Composer\Plugin\PluginInterface;
-use BalBuf\ComposerWP\Repository\SVNRepository;
 use BalBuf\ComposerWP\Util\Util;
 use Composer\Cache;
+use RuntimeException;
 
 class WordPressPlugins extends SVNRepositoryConfig {
 
-	const searchUrl = 'https://api.wordpress.org/plugins/info/1.0/';
+	const apiUrl = 'https://api.wordpress.org/plugins/info/1.0/';
 	const newestNum = 100; // how many of the newest plugins to pull for comparison
 
-	protected $config = [
-		'url' => 'https://plugins.svn.wordpress.org/',
-		'package-paths' => [ '/tags/', '/trunk' ],
-		'package-types' => [ 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ],
-		'package-filter' => [ __CLASS__, 'filterPackage' ],
-		'search-handler' => [ __CLASS__, 'search' ],
-		'cache-handler' => [ __CLASS__, 'cache' ],
-		// store the cache for however long the default is - it will likely get invalidated before then
-		'cache-ttl' => 'config',
-	];
+	protected $pluginInfo = [];
 
-	protected static $pluginInfo = [];
+	function __construct() {
+		// set here so that we have a reference to $this
+		$this->config = [
+			'url' => 'https://plugins.svn.wordpress.org/',
+			'package-paths' => [ '/tags/', '/trunk' ],
+			'package-types' => [ 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ],
+			'package-filter' => [ $this, 'filterPackage' ],
+			'search-handler' => [ $this, 'search' ],
+			'cache-handler' => [ $this, 'cache' ],
+			// store the cache for however long the default is - it will likely get invalidated before then
+			'cache-ttl' => 'config',
+		];
+		parent::__construct();
+	}
 
 	/**
 	 * Filter the package to add dist and other meta information.
 	 */
-	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
+	function filterPackage( CompletePackage $package ) {
 		list( $vendor, $shortName ) = explode( '/',  $package->getName() );
 		// try to get the plugin info - may return an array or null/false
-		if ( $info = static::getPluginInfo( $shortName, $io ) ) {
+		try {
+			$info = $this->getPluginInfo( $shortName );
+		} catch ( RuntimeException $e ) {
+			if ( $io->isVerbose() ) {
+				$io->writeError( $e->getMessage() );
+			}
+			// this allows us to try again for this plugin
+			return;
+		}
+		if ( $info ) {
 			// set the dist info
 			$package->setDistType( 'zip' );
 			// strip out "tags", "trunk", slashes, and spaces
@@ -75,7 +86,7 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				'docs' => "https://wordpress.org/plugins/$pluginSlug/",
 			] );
 			$package->setHomepage( "https://wordpress.org/plugins/$pluginSlug/" );
-		} else if ( $info === null ) {
+		} else {
 			// null means the package is no longer active
 			$package->setAbandoned( true );
 		}
@@ -86,49 +97,39 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	 * @param  string $plugin plugin slug
 	 * @return mixed         array of plugin data or null if no data / false if retrieval error
 	 */
-	static function getPluginInfo( $plugin, IOInterface $io ) {
-		if ( !array_key_exists( $plugin, static::$pluginInfo ) ) {
+	function getPluginInfo( $plugin ) {
+		if ( !array_key_exists( $plugin, $this->pluginInfo ) ) {
 			// ask the API about this plugin
-			$url = 'https://api.wordpress.org/plugins/info/1.0/' . urlencode( $plugin ) . '.json';
-			if ( $io->isVerbose() ) {
-				$io->write( "Requesting more information about $plugin plugin: $url" );
+			$url = self::apiUrl . urlencode( $plugin ) . '.json';
+			if ( $this->io->isVerbose() ) {
+				$this->io->write( "Requesting more information about $plugin plugin: $url" );
 			}
 			$response = file_get_contents( $url );
 			// was the retrieval successful?
 			if ( $response === false ) {
-				if ( $io->isVerbose() ) {
-					$io->writeError( "Could not retrieve $url" );
-				}
-				// this allows us to try again
-				return false;
+				throw new RuntimeException( "Could not retrieve $url" );
 			} else {
 				$data = json_decode( $response, true );
-				// null could either really be null, or a json error
-				if ( $data === null ) {
-					if ( json_last_error() !== \JSON_ERROR_NONE ) {
-						if ( $io->isVerbose() ) {
-							$io->writeError( 'JSON error occured: ' . json_last_error_msg() );
-						}
-						return false;
-					}
+				if ( json_last_error() !== \JSON_ERROR_NONE ) {
+					throw new RuntimeException( 'JSON error occured: ' . json_last_error_msg() );
 				}
-				if ( $io->isDebug() ) {
-					$io->Write( "Plugin data: \n" . print_r( $data, true ) );
+				if ( $this->io->isDebug() ) {
+					$this->io->write( "Plugin data: \n" . print_r( $data, true ) );
 				}
-				static::$pluginInfo[ $plugin ] = $data;
+				$this->pluginInfo[ $plugin ] = $data;
 			}
 		}
-		return static::$pluginInfo[ $plugin ];
+		return $this->pluginInfo[ $plugin ];
 	}
 
 	/**
 	 * Query the plugins API for information.
 	 * @see http://codex.wordpress.org/WordPress.org_API#Plugins
-	 * @param  string $action  request action
+	 * @param  string $action request action
 	 * @param  array $request request data
 	 * @return mixed          response
 	 */
-	static function queryAPI( $action, array $request ) {
+	function queryAPI( $action, array $request ) {
 		// data to send to the api
 		$data = [ 'action' => $action, 'request' => serialize( (object) $request ) ];
 		// create stream context for file_get_contents
@@ -139,11 +140,16 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				'content' => http_build_query( $data ),
 			]
 		] );
-		// query the api
-		if ( $response = file_get_contents( self::searchUrl, false, $ctx ) ) {
-			// @todo file get contents error handling
-			return unserialize( $response );
+		$url = self::apiUrl;
+		if ( $this->io->isVerbose() ) {
+			$this->io->write( "Fetching $url with " . print_r( $data, true ) );
 		}
+		// query the api
+		$response = file_get_contents( $url, false, $ctx );
+		if ( $response === false ) {
+			throw new RuntimeException( "Could not retrieve $url" );
+		}
+		return unserialize( $response );
 	}
 
 	/**
@@ -151,24 +157,31 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	 * @param  string $query search query
 	 * @return mixed        results or original query to fallback to provider search
 	 */
-	static function search( $query, IOInterface $io, SVNRepository $repo ) {
-		if ( $io->isVerbose() ) {
-			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
+	function search( $query ) {
+		if ( $this->io->isVerbose() ) {
+			$this->io->write( "Searching for $query" );
+		}
+		try {
+			$results = $this->queryAPI( 'query_plugins', [ 'search' => $query ] );
+		} catch ( RuntimeException $e ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->writeError( $e->getMessage() );
+			}
+			// fall back to the standard search method
+			return $query;
 		}
 		// query the api
-		if ( $results = self::queryAPI( 'query_plugins', [ 'search' => $query ] ) ) {
-			if ( !empty( $results->plugins ) ) {
-				$vendor = $repo->getDefaultVendor();
-				$out = [];
-				foreach ( $results->plugins as $plugin ) {
-					$out[] = [
-						'name' => "$vendor/{$plugin->slug}",
-						'description' => Util::truncate( strip_tags( $plugin->short_description ), 100 ),
-						'url' => $plugin->homepage,
-					];
-				}
-				return $out;
+		if ( !empty( $results->plugins ) ) {
+			$vendor = $this->repo->getDefaultVendor();
+			$out = [];
+			foreach ( $results->plugins as $plugin ) {
+				$out[] = [
+					'name' => "$vendor/{$plugin->slug}",
+					'description' => Util::truncate( strip_tags( $plugin->short_description ), 100 ),
+					'url' => $plugin->homepage,
+				];
 			}
+			return $out;
 		}
 		return $query;
 	}
@@ -176,7 +189,7 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	/**
 	 * Use the 'newest' plugins feed as a form of cache invalidation.
 	 */
-	static function cache( $providerHash, Cache $cache, SVNRepository $repo ) {
+	function cache( $providerHash, Cache $cache ) {
 		// get the X newest plugins
 		$request = [
 			'browse' => 'new',
@@ -198,12 +211,19 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				'short_description' => false,
 			],
 		];
+		try {
+			$response = $this->queryAPI( 'query_plugins', $request );
+		} catch ( RuntimeException $e ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->writeError( $e->getMessage() );
+			}
+			// invalidate the cache
+			return false;
+		}
 		$newest = [];
-		if ( $response = self::queryAPI( 'query_plugins', $request ) ) {
-			if ( !empty( $response->plugins ) && is_array( $response->plugins ) ) {
-				foreach ( $response->plugins as $plugin ) {
-					$newest[] = $plugin->slug;
-				}
+		if ( !empty( $response->plugins ) && is_array( $response->plugins ) ) {
+			foreach ( $response->plugins as $plugin ) {
+				$newest[] = $plugin->slug;
 			}
 		}
 		// do we even have a provider list and old set of newest to work off of?
@@ -213,7 +233,7 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				$newProviders = array_diff( $newest, $lastNewest );
 				// if the number of new providers is equal to number we pulled, assume there may be more and invalidate the cache
 				if ( count( $newProviders ) < self::newestNum ) {
-					$url = $repo->getRepoConfig()[0];
+					$url = reset( $this->config['url'] );
 					foreach ( $newProviders as $name ) {
 						// full path to this provider in the SVN repo, no trailing slash
 						$providerHash[ $name ] = "$url/$name";

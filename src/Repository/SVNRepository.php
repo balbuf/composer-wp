@@ -32,14 +32,16 @@ class SVNRepository extends ComposerRepository {
 	protected $providerHash; // map {provider name} => {provider url}
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
+	protected $vendors;
 	protected $defaultVendor;
 
 	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io, Config $config ) {
 		// @TODO: add event dispatcher?
-		$repoConfig = $repoConfig->getConfig();
+		$this->repoConfig = $repoConfig;
+		$this->plugin = $repoConfig->getPlugin();
 		// check url immediately - can't do anything without it
 		$urls = [];
-		foreach ( (array) $repoConfig['url'] as $url ) {
+		foreach ( (array) $repoConfig->get( 'url' ) as $url ) {
 			if ( ( $urlParts = parse_url( $url ) ) === false || empty( $urlParts['scheme'] ) ) {
 				continue;
 			}
@@ -47,25 +49,23 @@ class SVNRepository extends ComposerRepository {
 			$urls[] = rtrim( $url, '/' );
 		}
 		if ( !count( $urls ) ) {
-			throw new \UnexpectedValueException( 'No valid URLs for SVN repository: ' . print_r( $repoConfig['url'], true ) );
+			throw new \UnexpectedValueException( 'No valid URLs for SVN repository: ' . print_r( $repoConfig->get( 'url' ), true ) );
 		}
-		$repoConfig['url'] = $urls;
+		$repoConfig->set( 'url', $urls );
 		// use the cache TTL from the config?
-		if ( $repoConfig['cache-ttl'] === 'config' ) {
-			$repoConfig['cache-ttl'] = $config->get( 'cache-files-ttl' );
+		if ( $repoConfig->get( 'cache-ttl' ) === 'config' ) {
+			$repoConfig->set( 'cache-ttl', $config->get( 'cache-files-ttl' ) );
 		}
-		$this->repoConfig = $repoConfig;
 
 		$this->io = $io;
 		$this->cache = new Cache( $io, $config->get( 'cache-repo-dir' ) . '/' . preg_replace( '{[^a-z0-9.]}i', '-', reset( $urls ) ) );
 		$this->loader = new ArrayLoader();
-		$this->plugin = $repoConfig['plugin'];
 
 		// clear out stale cache
-		$this->cache->gc( $repoConfig['cache-ttl'], $config->get( 'cache-files-maxsize' ) );
+		$this->cache->gc( $repoConfig->get( 'cache-ttl' ), $config->get( 'cache-files-maxsize' ) );
 
-		reset( $repoConfig['vendors'] );
-		$this->defaultVendor = key( $repoConfig['vendors'] );
+		$this->vendors = $repoConfig->get( 'vendors' );
+		$this->defaultVendor = key( $this->vendors );
 
 		// set the SvnUtil for all instantiated classes to use
 		if ( !isset( self::$SvnUtil ) ) {
@@ -100,7 +100,7 @@ class SVNRepository extends ComposerRepository {
 
 	public function search( $query, $mode = 0 ) {
 		// if the query exactly matches one of our vendors, return the whole list!
-		if ( isset( $this->repoConfig['vendors'][ $query ] ) ) {
+		if ( isset( $this->vendors[ $query ] ) ) {
 			// make sure the vendor that shows is the vendor they want
 			$this->defaultVendor = $query;
 			$out = [];
@@ -110,7 +110,7 @@ class SVNRepository extends ComposerRepository {
 			return $out;
 		}
 		// try running the search handler - see if we get anything
-		$results = Util::callFilter( $this->repoConfig['search-handler'], $query, $this->io, $this );
+		$results = Util::callFilter( $this->repoConfig->get( 'search-handler' ), $query );
 		// if the these are the same, default to the normal provider name search
 		if ( $results === $query ) {
 			return parent::search( $query, $mode );
@@ -145,7 +145,7 @@ class SVNRepository extends ComposerRepository {
 		list( $vendor, $shortName ) = $parts;
 
 		// does the vendor match one of our virtual vendors?
-		if ( !isset( $this->repoConfig['vendors'][ $vendor ] ) ) {
+		if ( !isset( $this->vendors[ $vendor ] ) ) {
 			return [];
 		}
 
@@ -169,7 +169,7 @@ class SVNRepository extends ComposerRepository {
 
 		// get a listing of available packages
 		// these are paths under the provider url where we should find actual packages
-		foreach ( (array) $this->repoConfig['package-paths'] as $path ) {
+		foreach ( (array) $this->repoConfig->get( 'package-paths' ) as $path ) {
 			// the relative path without surrounding slashes
 			$relPath = trim( $path, '/' );
 			// if the path ends with a slash, we grab its subdirectories
@@ -188,9 +188,9 @@ class SVNRepository extends ComposerRepository {
 				foreach ( SvnUtil::parseSvnList( $pkgRaw ) as $version ) {
 					// format the version identifier to be composer-compatible
 					$version = Util::fixVersion( $version, 'dev-default' );
-					$version = Util::callFilter( $this->repoConfig['version-filter'], $version, $name, $path, $providerUrl );
+					$version = Util::callFilter( $this->repoConfig->get( 'version-filter' ), $version, $name, $path, $providerUrl );
 					// if the version string is empty, we don't take it
-					if ( strlen( $version ) ) {
+					if ( !empty( $version ) ) {
 						$packages[ $version ] = trim( "$relPath/$version", '/' );
 					}
 				}
@@ -198,9 +198,9 @@ class SVNRepository extends ComposerRepository {
 				// otherwise we add as-is (no checking is performed to see if this reference really exists)
 				// @todo: perhaps add an optional check?
 				$version = Util::fixVersion( basename( $path ), 'dev-default' );
-				$version = Util::callFilter( $this->repoConfig['version-filter'], $version, $name, $path, $providerUrl );
+				$version = Util::callFilter( $this->repoConfig->get( 'version-filter' ), $version, $name, $path, $providerUrl );
 				// if the version string is empty, we don't take it
-				if ( strlen( $version ) ) {
+				if ( !empty( $version ) ) {
 					$packages[ $version ] = $relPath;
 				}
 			}
@@ -222,7 +222,7 @@ class SVNRepository extends ComposerRepository {
 			$data = [
 				'name' => $name,
 				'version' => $version,
-				'type' => $this->repoConfig['vendors'][ $vendor ],
+				'type' => $this->vendors[ $vendor ],
 				'source' => [
 					'type' => 'svn',
 					'url' => "$providerUrl/",
@@ -235,21 +235,21 @@ class SVNRepository extends ComposerRepository {
 				],
 			];
 			// next, fill in any defaults that were missing
-			if ( !empty( $this->repoConfig['package-defaults'] ) ) {
-				$data = array_merge( $this->repoConfig['package-defaults'], $data );
+			if ( ( $defaults = $this->repoConfig->get( 'package-defaults' ) ) && is_array( $defaults ) ) {
+				$data = array_merge( $defaults, $data );
 			}
 			// finally, apply any overrides
-			if ( !empty( $this->repoConfig['package-defaults'] ) ) {
-				$data = array_replace( $data, $this->repoConfig['package-defaults'] );
+			if ( ( $overrides = $this->repoConfig->get( 'package-overrides' ) ) && is_array( $overrides ) ) {
+				$data = array_replace( $data, $overrides );
 			}
 			// create the package object
 			$package = $this->createPackage( $data, 'Composer\Package\CompletePackage' );
 			$package->setRepository( $this );
 			// add "replaces" array for any other vendors that this repository supports
-			if ( count( $this->repoConfig['vendors'] ) > 1 ) {
+			if ( count( $this->vendors ) > 1 ) {
 				$replaces = [];
 				$constraint = new Constraint( '=', $package->getVersion() );
-				foreach ( $this->repoConfig['vendors'] as $vendorName => $type ) {
+				foreach ( $this->vendors as $vendorName => $type ) {
 					// it doesn't replace itself
 					if ( $vendorName === $vendor ) {
 						continue;
@@ -259,7 +259,7 @@ class SVNRepository extends ComposerRepository {
 				$package->setReplaces( $replaces );
 			}
 			// apply a filter to the package object
-			Util::callFilter( $this->repoConfig['package-filter'], $package, $this->io, $this->plugin );
+			Util::callFilter( $this->repoConfig->get( 'package-filter' ), $package );
 			// add the package object to the set
 			$this->providers[ $name ][ $version ] = $package;
 
@@ -286,9 +286,9 @@ class SVNRepository extends ComposerRepository {
 			return;
 		}
 		// maybe we have our providers stashed in the cache
-		$cacheFile = $this->repoConfig['cache-file'];
+		$cacheFile = $this->repoConfig->get( 'cache-file' );
 		$providerHash = ( $hash = $this->cache->sha256( $cacheFile ) ) ? json_decode( $this->cache->read( $cacheFile ), true ) : false;
-		$providerHash = Util::callFilter( $this->repoConfig['cache-handler'], $providerHash, $this->cache, $this );
+		$providerHash = Util::callFilter( $this->repoConfig->get( 'cache-handler' ), $providerHash, $this->cache );
 		// if provider hash is an array, we assume this is the complete set
 		if ( is_array( $providerHash ) ) {
 			$this->providerHash = $providerHash;
@@ -305,12 +305,12 @@ class SVNRepository extends ComposerRepository {
 		$this->providerListing = $this->providerHash = [];
 
 		// cycle through the urls
-		foreach ( $this->repoConfig['url'] as $baseUrl ) {
+		foreach ( $this->repoConfig->get( 'url' ) as $baseUrl ) {
 			if ( $this->io->isVerbose() ) {
 				$this->io->writeError( "Fetching providers from $baseUrl" );
 			}
 			// cycle through the provider path(s)
-			foreach ( (array) $this->repoConfig['provider-paths'] as $path ) {
+			foreach ( (array) $this->repoConfig->get( 'provider-paths' ) as $path ) {
 				// form the url to this provider listing - avoid double slashing and no trailing slash
 				$url = rtrim( $baseUrl . '/' . ltrim( $path, '/' ), '/' );
 				// if the path ends with a slash, we grab its subdirectories
@@ -336,8 +336,8 @@ class SVNRepository extends ComposerRepository {
 		}
 		save:
 		// save to the cache if we have a TTL and the contents has changed (so that TTL is compared against the first time it was saved)
-		if ( $this->repoConfig['cache-ttl'] && $hash !== hash( 'sha256', $contents = json_encode( $this->providerHash ) ) ) {
-			$this->cache->write( $this->repoConfig['cache-file'], $contents );
+		if ( $this->repoConfig->get( 'cache-ttl' ) && $hash !== hash( 'sha256', $contents = json_encode( $this->providerHash ) ) ) {
+			$this->cache->write( $cacheFile, $contents );
 		}
 	}
 
@@ -349,7 +349,7 @@ class SVNRepository extends ComposerRepository {
 	 */
 	protected function addProvider( $name, $relPath, $absUrl ) {
 		// is there a provider name filter?
-		$name = Util::callFilter( $this->repoConfig['name-filter'], $name, $relPath, $absUrl );
+		$name = Util::callFilter( $this->repoConfig->get( 'name-filter' ), $name, $relPath, $absUrl );
 		// only add the provider if it is truthy
 		if ( $name ) {
 			// this provider listing is not used in solving, just for listing

@@ -8,8 +8,6 @@ namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
-use Composer\IO\IOInterface;
-use Composer\Plugin\PluginInterface;
 
 class WordPressCore extends SVNRepositoryConfig {
 
@@ -31,7 +29,7 @@ class WordPressCore extends SVNRepositoryConfig {
 		}
 	}
 
-	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
+	static function filterPackage( CompletePackage $package ) {
 		// strip out "tags", slashes, and spaces
 		$version = preg_replace( '/tags|[\\/ ]/', '', $package->getSourceReference() );
 		// trunk does not have a dist version

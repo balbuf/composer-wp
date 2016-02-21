@@ -8,8 +8,6 @@ namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
-use Composer\IO\IOInterface;
-use Composer\Plugin\PluginInterface;
 
 class WordPressDevelop extends SVNRepositoryConfig {
 
@@ -31,7 +29,7 @@ class WordPressDevelop extends SVNRepositoryConfig {
 		}
 	}
 
-	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
+	static function filterPackage( CompletePackage $package ) {
 		$package->setHomepage( 'https://wordpress.org/' );
 		$package->setDescription( 'WordPress develop repo offering source files, unit tests, and i18n tools.' );
 	}

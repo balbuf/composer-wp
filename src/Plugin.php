@@ -19,6 +19,7 @@
  * - allow additional ssh options set via environment vars
  * - figure out what is going on with the findPackage(s) methods
  * - look into whether the 'replaces' packages are generating extraneous calls to the SVN repo
+ * - add a check to see if there is a new version of the plugin available and provide notice if so
  */
 
 namespace BalBuf\ComposerWP;
@@ -183,10 +184,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				$repoConfig = new $configClass( $definition );
 				$this->resolveVendors( $repoConfig );
 			}
-			// provide a reference to this plugin
-			$repoConfig->set( 'plugin', $this );
+			// provide the config some useful objects
+			$repoConfig->setComposer( $this->composer );
+			$repoConfig->setIO( $this->io );
+			$repoConfig->setPlugin( $this );
 			// add the repo!
-			$rm->addRepository( $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
+			$rm->addRepository( $repo = $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
+			$repoConfig->setRepo( $repo );
 		}
 	}
 
@@ -267,6 +271,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	 */
 	public function getComposer() {
 		return $this->composer;
+	}
+
+	/**
+	 * Get the IO object.
+	 * @return IOInterface
+	 */
+	public function getIO() {
+		return $this->io;
 	}
 
 }

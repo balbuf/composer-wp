@@ -8,31 +8,41 @@ namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
-use Composer\IO\IOInterface;
-use Composer\Plugin\PluginInterface;
-use BalBuf\ComposerWP\Repository\SVNRepository;
 use BalBuf\ComposerWP\Util\Util;
+use RuntimeException;
 
 class WordPressThemes extends SVNRepositoryConfig {
 
-	const searchUrl = 'https://api.wordpress.org/themes/info/1.1/';
+	const apiUrl = 'https://api.wordpress.org/themes/info/1.1/';
 
-	protected $config = [
-		'url' => 'https://themes.svn.wordpress.org/',
-		'package-types' => [ 'wordpress-theme' => 'wordpress-theme' ],
-		'package-filter' => [ __CLASS__, 'filterPackage' ],
-		'search-handler' => [ __CLASS__, 'search' ],
-	];
+	protected $themeInfo = [];
 
-	protected static $themeInfo = [];
+	function __construct() {
+		$this->config = [
+			'url' => 'https://themes.svn.wordpress.org/',
+			'package-types' => [ 'wordpress-theme' => 'wordpress-theme' ],
+			'package-filter' => [ $this, 'filterPackage' ],
+			'search-handler' => [ $this, 'search' ],
+		];
+		parent::__construct();
+	}
 
 	/**
 	 * Filter the package to add dist and other meta information.
 	 */
-	static function filterPackage( CompletePackage $package, IOInterface $io, PluginInterface $plugin ) {
+	function filterPackage( CompletePackage $package ) {
 		list( $vendor, $shortName ) = explode( '/',  $package->getName() );
 		// try to get the theme info - may return an array or null/false
-		if ( $info = static::getThemeInfo( $shortName, $io ) ) {
+		try {
+			$info = $this->getThemeInfo( $shortName );
+		} catch ( RuntimeException $e ) {
+			if ( $io->isVerbose() ) {
+				$io->writeError( $e->getMessage() );
+			}
+			// this allows us to try again for this theme
+			return;
+		}
+		if ( $info ) {
 			// set the dist info
 			$package->setDistType( 'zip' );
 			// strip out slashes and spaces
@@ -62,9 +72,33 @@ class WordPressThemes extends SVNRepositoryConfig {
 				'docs' => "https://wordpress.org/themes/$slug/",
 			] );
 			$package->setHomepage( "https://wordpress.org/themes/$slug/" );
-		} else if ( $info === false ) {
+		} else {
 			// false means the package is no longer active
 			$package->setAbandoned( true );
+		}
+	}
+
+	/**
+	 * Query the themes API for information.
+	 * @see http://codex.wordpress.org/WordPress.org_API#Themes
+	 * @param  string $action request action
+	 * @param  array $request request data
+	 * @return mixed          response
+	 */
+	function queryAPI( $action, $request ) {
+		$url = self::apiUrl . '?' . http_build_query( [ 'action' => $action, 'request' => $request ] );
+		if ( $this->io->isVerbose() ) {
+			$this->io->write( "Fetching $url" );
+		}
+		$response = file_get_contents( $url );
+		if ( $response === false ) {
+			throw new RuntimeException( "Could not retrieve $url" );
+		} else {
+			$response = json_decode( $response, true );
+			if ( json_last_error() !== \JSON_ERROR_NONE ) {
+				throw new RuntimeException( 'JSON error occured: ' . json_last_error_msg() );
+			}
+			return $response;
 		}
 	}
 
@@ -73,39 +107,19 @@ class WordPressThemes extends SVNRepositoryConfig {
 	 * @param  string $theme theme slug
 	 * @return mixed         array of theme data or false if no data / null if retrieval error
 	 */
-	static function getThemeInfo( $theme, IOInterface $io ) {
-		if ( !array_key_exists( $theme, static::$themeInfo ) ) {
+	function getThemeInfo( $theme ) {
+		if ( !array_key_exists( $theme, $this->themeInfo ) ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->write( "Requesting more information about $theme theme." );
+			}
 			// ask the API about this theme
-			$url = 'https://api.wordpress.org/themes/info/1.1/?action=theme_information&request[slug]=' . urlencode( $theme );
-			if ( $io->isVerbose() ) {
-				$io->write( "Requesting more information about $theme theme: $url" );
+			$data = $this->queryAPI( 'theme_information', [ 'slug' => $theme ] );
+			if ( $this->io->isDebug() ) {
+				$this->io->write( "Theme data: \n" . print_r( $data, true ) );
 			}
-			$response = file_get_contents( $url );
-			// was the retrieval successful?
-			if ( $response === false ) {
-				if ( $io->isVerbose() ) {
-					$io->writeError( "Could not retrieve $url" );
-				}
-				// this allows us to try again
-				return null;
-			} else {
-				$data = json_decode( $response, true );
-				// null could either really be null, or a json error
-				if ( $data === null ) {
-					if ( json_last_error() !== \JSON_ERROR_NONE ) {
-						if ( $io->isVerbose() ) {
-							$io->writeError( 'JSON error occured: ' . json_last_error_msg() );
-						}
-						return null;
-					}
-				}
-				if ( $io->isDebug() ) {
-					$io->Write( "Theme data: \n" . print_r( $data, true ) );
-				}
-				static::$themeInfo[ $theme ] = $data;
-			}
+			$this->themeInfo[ $theme ] = $data;
 		}
-		return static::$themeInfo[ $theme ];
+		return $this->themeInfo[ $theme ];
 	}
 
 	/**
@@ -113,32 +127,32 @@ class WordPressThemes extends SVNRepositoryConfig {
 	 * @param  string $query search query
 	 * @return mixed        results or original query to fallback to provider search
 	 */
-	static function search( $query, IOInterface $io, SVNRepository $repo ) {
-		if ( $io->isVerbose() ) {
-			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
+	function search( $query ) {
+		if ( $this->io->isVerbose() ) {
+			$this->io->write( 'Searching ' . self::apiUrl . ' for ' . $query );
 		}
-		$response = file_get_contents( self::searchUrl . '?action=query_themes&request[search]=' . urlencode( $query ) );
-		// @todo error handling for file get contents
-		$results = json_decode( $response, true );
-		if ( json_last_error() === \JSON_ERROR_NONE ) {
-			if ( !empty( $results['themes'] ) ) {
-				$out = [];
-				$vendor = $repo->getDefaultVendor();
-				foreach ( $results['themes'] as $theme ) {
-					// fairly confident all of the fields below will be provided for a given theme
-					$out[] = [
-						'name' => "$vendor/{$theme['slug']}",
-						// truncate as some of these descriptions can get out of hand
-						'description' => Util::truncate( strip_tags( $theme['description'] ), 100 ),
-						'url' => $theme['homepage'],
-					];
-				}
-				return $out;
+		try {
+			$results = $this->queryAPI( 'query_themes', [ 'search' => $query ] );
+		} catch ( RuntimeException $e ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->writeError( $e->getMessage() );
 			}
-		} else {
-			if ( $io->isDebug() ) {
-				$io->writeError( 'JSON error occured: ' . json_last_error_msg() );
+			// fall back to the standard search method
+			return $query;
+		}
+		if ( !empty( $results['themes'] ) ) {
+			$out = [];
+			$vendor = $this->repo->getDefaultVendor();
+			foreach ( $results['themes'] as $theme ) {
+				// fairly confident all of the fields below will be provided for a given theme
+				$out[] = [
+					'name' => "$vendor/{$theme['slug']}",
+					// truncate as some of these descriptions can get out of hand
+					'description' => Util::truncate( strip_tags( $theme['description'] ), 100 ),
+					'url' => $theme['homepage'],
+				];
 			}
+			return $out;
 		}
 		return $query;
 	}
