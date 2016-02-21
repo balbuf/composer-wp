@@ -12,10 +12,12 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use BalBuf\ComposerWP\Repository\SVNRepository;
 use BalBuf\ComposerWP\Util\Util;
+use Composer\Cache;
 
 class WordPressPlugins extends SVNRepositoryConfig {
 
-	const searchUrl = 'http://api.wordpress.org/plugins/info/1.0/';
+	const searchUrl = 'https://api.wordpress.org/plugins/info/1.0/';
+	const newestNum = 100; // how many of the newest plugins to pull for comparison
 
 	protected $config = [
 		'url' => 'https://plugins.svn.wordpress.org/',
@@ -23,6 +25,9 @@ class WordPressPlugins extends SVNRepositoryConfig {
 		'package-types' => [ 'wordpress-plugin' => 'wordpress-plugin', 'wordpress-muplugin' => 'wordpress-muplugin' ],
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
 		'search-handler' => [ __CLASS__, 'search' ],
+		'cache-handler' => [ __CLASS__, 'cache' ],
+		// store the cache for however long the default is - it will likely get invalidated before then
+		'cache-ttl' => 'config',
 	];
 
 	protected static $pluginInfo = [];
@@ -117,16 +122,15 @@ class WordPressPlugins extends SVNRepositoryConfig {
 	}
 
 	/**
-	 * Query the WP plugins api for results.
-	 * @param  string $query search query
-	 * @return mixed        results or original query to fallback to provider search
+	 * Query the plugins API for information.
+	 * @see http://codex.wordpress.org/WordPress.org_API#Plugins
+	 * @param  string $action  request action
+	 * @param  array $request request data
+	 * @return mixed          response
 	 */
-	static function search( $query, IOInterface $io, SVNRepository $repo ) {
-		if ( $io->isVerbose() ) {
-			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
-		}
+	static function queryAPI( $action, array $request ) {
 		// data to send to the api
-		$data = [ 'action' => 'query_plugins', 'request' => serialize( (object) [ 'search' => $query ] ) ];
+		$data = [ 'action' => $action, 'request' => serialize( (object) $request ) ];
 		// create stream context for file_get_contents
 		$ctx = stream_context_create( [
 			'http' => [
@@ -138,7 +142,21 @@ class WordPressPlugins extends SVNRepositoryConfig {
 		// query the api
 		if ( $response = file_get_contents( self::searchUrl, false, $ctx ) ) {
 			// @todo file get contents error handling
-			$results = unserialize( $response );
+			return unserialize( $response );
+		}
+	}
+
+	/**
+	 * Query the WP plugins api for results.
+	 * @param  string $query search query
+	 * @return mixed        results or original query to fallback to provider search
+	 */
+	static function search( $query, IOInterface $io, SVNRepository $repo ) {
+		if ( $io->isVerbose() ) {
+			$io->write( 'Searching ' . self::searchUrl . ' for ' . $query );
+		}
+		// query the api
+		if ( $results = self::queryAPI( 'query_plugins', [ 'search' => $query ] ) ) {
 			if ( !empty( $results->plugins ) ) {
 				$vendor = $repo->getDefaultVendor();
 				$out = [];
@@ -153,6 +171,63 @@ class WordPressPlugins extends SVNRepositoryConfig {
 			}
 		}
 		return $query;
+	}
+
+	/**
+	 * Use the 'newest' plugins feed as a form of cache invalidation.
+	 */
+	static function cache( $providerHash, Cache $cache, SVNRepository $repo ) {
+		// get the X newest plugins
+		$request = [
+			'browse' => 'new',
+			'per_page' => self::newestNum,
+			// disable unnecessary fields to make the response smaller
+			'fields' => [
+				'description' => false,
+				'author' => false,
+				'author_profile' => false,
+				'contributors' => false,
+				'version' => false,
+				'requires' => false,
+				'tested' => false,
+				'compatibility' => false,
+				'rating' => false,
+				'num_ratings' => false,
+				'ratings' => false,
+				'homepage' => false,
+				'short_description' => false,
+			],
+		];
+		$newest = [];
+		if ( $response = self::queryAPI( 'query_plugins', $request ) ) {
+			if ( !empty( $response->plugins ) && is_array( $response->plugins ) ) {
+				foreach ( $response->plugins as $plugin ) {
+					$newest[] = $plugin->slug;
+				}
+			}
+		}
+		// do we even have a provider list and old set of newest to work off of?
+		if ( is_array( $providerHash ) && $lastNewest = $cache->read( 'newest.json' ) ) {
+			// the newest from the last time we checked
+			if ( $lastNewest = json_decode( $lastNewest ) ) {
+				$newProviders = array_diff( $newest, $lastNewest );
+				// if the number of new providers is equal to number we pulled, assume there may be more and invalidate the cache
+				if ( count( $newProviders ) < self::newestNum ) {
+					$url = $repo->getRepoConfig()[0];
+					foreach ( $newProviders as $name ) {
+						// full path to this provider in the SVN repo, no trailing slash
+						$providerHash[ $name ] = "$url/$name";
+					}
+				} else {
+					$providerHash = false;
+				}
+			} else {
+				$providerHash = false;
+			}
+		}
+		// save the newest plugins to the cache
+		$cache->write( 'newest.json', json_encode( $newest ) );
+		return $providerHash;
 	}
 
 }
