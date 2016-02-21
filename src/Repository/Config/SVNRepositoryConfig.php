@@ -40,6 +40,12 @@ class SVNRepositoryConfig extends RepositoryConfig {
 		'package-filter' => null,
 		// take over the search functionality with a custom handler
 		'search-handler' => null,
+		// load from cache
+		'cache-handler' => null,
+		// how long to cache the providers for (secs)
+		'cache-ttl' => 0,
+		// provider cache file
+		'cache-file' => 'providers.json',
 	];
 
 	/**

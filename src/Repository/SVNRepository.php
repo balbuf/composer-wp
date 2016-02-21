@@ -5,6 +5,8 @@ namespace BalBuf\ComposerWP\Repository;
 use Composer\Repository\ComposerRepository;
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\IO\IOInterface;
+use Composer\Config;
+use Composer\Cache;
 use Composer\Package\Loader\ArrayLoader;
 use BalBuf\ComposerWP\Util\Svn as SvnUtil;
 use Composer\Package\PackageInterface;
@@ -32,7 +34,7 @@ class SVNRepository extends ComposerRepository {
 	protected $plugin; //the plugin class that instantiated this repository
 	protected $defaultVendor;
 
-	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io ) {
+	public function __construct( SVNRepositoryConfig $repoConfig, IOInterface $io, Config $config ) {
 		// @TODO: add event dispatcher?
 		$repoConfig = $repoConfig->getConfig();
 		// check url immediately - can't do anything without it
@@ -48,11 +50,19 @@ class SVNRepository extends ComposerRepository {
 			throw new \UnexpectedValueException( 'No valid URLs for SVN repository: ' . print_r( $repoConfig['url'], true ) );
 		}
 		$repoConfig['url'] = $urls;
+		// use the cache TTL from the config?
+		if ( $repoConfig['cache-ttl'] === 'config' ) {
+			$repoConfig['cache-ttl'] = $config->get( 'cache-files-ttl' );
+		}
 		$this->repoConfig = $repoConfig;
 
 		$this->io = $io;
+		$this->cache = new Cache( $io, $config->get( 'cache-repo-dir' ) . '/' . preg_replace( '{[^a-z0-9.]}i', '-', reset( $urls ) ) );
 		$this->loader = new ArrayLoader();
 		$this->plugin = $repoConfig['plugin'];
+
+		// clear out stale cache
+		$this->cache->gc( $repoConfig['cache-ttl'], $config->get( 'cache-files-maxsize' ) );
 
 		reset( $repoConfig['vendors'] );
 		$this->defaultVendor = key( $repoConfig['vendors'] );
@@ -221,7 +231,7 @@ class SVNRepository extends ComposerRepository {
 					'reference' => $reference ?: '/',
 				],
 				'require' => [
-					'oomphinc/composer-installers-extender' => '~1.0',
+					'oomphinc/composer-installers-extender' => '^1.0',
 				],
 			];
 			// next, fill in any defaults that were missing
@@ -268,13 +278,29 @@ class SVNRepository extends ComposerRepository {
 	}
 
 	/**
-	 * Load the providers (i.e. package names) from the SVN repo.
+	 * Load the providers (i.e. package names) from the SVN repo (or cache).
 	 */
 	protected function loadProviders() {
 		// maybe we already loaded them?
 		if ( $this->providerListing !== null ) {
 			return;
 		}
+		// maybe we have our providers stashed in the cache
+		$cacheFile = $this->repoConfig['cache-file'];
+		$providerHash = ( $hash = $this->cache->sha256( $cacheFile ) ) ? json_decode( $this->cache->read( $cacheFile ), true ) : false;
+		$providerHash = Util::callFilter( $this->repoConfig['cache-handler'], $providerHash, $this->cache, $this );
+		// if provider hash is an array, we assume this is the complete set
+		if ( is_array( $providerHash ) ) {
+			$this->providerHash = $providerHash;
+			$this->providerListing = [];
+			// fill out the provider list
+			foreach ( $providerHash as $name => $url ) {
+				$this->providerListing[] = "{$this->defaultVendor}/$name";
+			}
+			goto save;
+		}
+
+		// otherwise we need to retrieve the providers
 		// start out empty
 		$this->providerListing = $this->providerHash = [];
 
@@ -297,6 +323,7 @@ class SVNRepository extends ComposerRepository {
 					}
 					// cycle through and add providers
 					foreach ( SvnUtil::parseSvnList( $providersRaw ) as $name ) {
+						// name, rel path, abs path
 						$this->addProvider( $name, $path, "$url/$name" );
 					}
 				} else {
@@ -306,6 +333,11 @@ class SVNRepository extends ComposerRepository {
 					$this->addProvider( basename( $path ), $path, $url );
 				}
 			}
+		}
+		save:
+		// save to the cache if we have a TTL and the contents has changed (so that TTL is compared against the first time it was saved)
+		if ( $this->repoConfig['cache-ttl'] && $hash !== hash( 'sha256', $contents = json_encode( $this->providerHash ) ) ) {
+			$this->cache->write( $this->repoConfig['cache-file'], $contents );
 		}
 	}
 
