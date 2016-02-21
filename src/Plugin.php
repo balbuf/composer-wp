@@ -13,13 +13,13 @@
  * - add unit tests
  * - add readme
  * - create a script to scan the headers of every plugin to identify anomolies
- * - caching? cache the full plugin list and only check for new plugins? cache package definitions?
- * - GH search?
+ * - caching for SSH zip repos
  * - plain old directory repo
  * - allow additional ssh options set via environment vars
  * - figure out what is going on with the findPackage(s) methods
  * - look into whether the 'replaces' packages are generating extraneous calls to the SVN repo
  * - add a check to see if there is a new version of the plugin available and provide notice if so
+ * - add support for envato packages
  */
 
 namespace BalBuf\ComposerWP;
