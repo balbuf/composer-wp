@@ -95,7 +95,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 		// assemble the command
 		// 1. `find` to get all zip files in the given directory
 		// 2. echo the filename so we can capture where the zip is
-		// 3. use `unzip` paired with `grep` to scan the zip for WP
+		// 3. use `unzip` piped into `grep` to scan the zip for WP
 		//    theme or plugin headers in style.css or *.php files,
 		//    respectively, but only in the top two directories within the zip
 		$cmd = "find -L $dir $maxdepth -iname '*.zip' -exec echo '{}' ';' -exec sh -c "
@@ -203,7 +203,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 					}
 					// add dist information
 					$package['dist'] = [
-						// for ssh, add a pseudo protocol that we will use to identify this as such
+						// for ssh, add a pseudo protocol that we will use to identify this as ssh
 						'url' => $this->ssh ? "ssh://{$this->repoConfig['ssh']}:$url" : $url,
 						'type' => 'zip',
 					];
@@ -222,7 +222,7 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 						}
 					}
 				} else {
-					// if the zip contains multiple packages, we can't use it
+					// if the zip contains multiple packages, we can't use it @todo - maybe make it possible?
 					if ( $this->io->isVerbose() ) {
 						$this->io->writeError( "Cannot use file $url as is appears to contain multiple packages." );
 					}
