@@ -7,6 +7,7 @@
 namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
+use Composer\Package\CompletePackage;
 
 class WordPressVIP extends SVNRepositoryConfig {
 
@@ -17,12 +18,18 @@ class WordPressVIP extends SVNRepositoryConfig {
 		'package-types' => [ 'wordpress-plugin' => 'wordpress-vip' ],
 		'name-filter' => [ __CLASS__, 'filterProvider' ],
 		'version-filter' => [ __CLASS__, 'filterVersion' ],
+		'package-filter' => [ __CLASS__, 'filterPackage' ],
+		// cache for one week - these change infrequently
+		'cache-ttl' => 604800,
 	];
 
 	static function filterProvider( $name, $path, $url ) {
+		// this is a subdir of plugins that are release candidates, not a plugin itself
 		if ( $name === 'release-candidates' ) {
 			return '';
 		}
+		// this plugin is in the release candidate subdir - append '-rc' in case there is
+		// an existing plugin of the same name in the repo root
 		if ( $path === 'release-candidates/' ) {
 			return "$name-rc";
 		}
@@ -34,6 +41,14 @@ class WordPressVIP extends SVNRepositoryConfig {
 	 */
 	static function filterVersion( $version ) {
 		return 'dev-master';
+	}
+
+	/**
+	 * Add some package meta info.
+	 */
+	static function filterPackage( CompletePackage $package ) {
+		// set the VIP plugins landing page as the homepage as some do not have individual overview pages
+		$package->setHomepage( 'https://vip.wordpress.com/plugins/' );
 	}
 
 }
