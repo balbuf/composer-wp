@@ -9,11 +9,13 @@ namespace BalBuf\ComposerWP\Repository\Config\Builtin;
 use BalBuf\ComposerWP\Repository\Config\SVNRepositoryConfig;
 use Composer\Package\CompletePackage;
 use BalBuf\ComposerWP\Util\Util;
+use Composer\Cache;
 use RuntimeException;
 
 class WordPressThemes extends SVNRepositoryConfig {
 
 	const apiUrl = 'https://api.wordpress.org/themes/info/1.1/';
+	const newestNum = 50;
 
 	protected $themeInfo = [];
 
@@ -23,6 +25,9 @@ class WordPressThemes extends SVNRepositoryConfig {
 			'package-types' => [ 'wordpress-theme' => 'wordpress-theme' ],
 			'package-filter' => [ $this, 'filterPackage' ],
 			'search-handler' => [ $this, 'search' ],
+			'cache-handler' => [ $this, 'cache' ],
+			// store the cache for however long the default is - it will likely get invalidated before then
+			'cache-ttl' => 'config',
 		];
 		parent::__construct();
 	}
@@ -155,6 +160,70 @@ class WordPressThemes extends SVNRepositoryConfig {
 			return $out;
 		}
 		return $query;
+	}
+
+	/**
+	 * Use the 'newest' themes feed as a form of cache invalidation.
+	 */
+	function cache( $providerHash, Cache $cache ) {
+		// get the X newest plugins
+		$request = [
+			'browse' => 'new',
+			'per_page' => self::newestNum,
+			// disable unnecessary fields to make the response smaller
+			'fields' => [
+				'name' => false,
+				'version' => false,
+				'rating' => false,
+				'downloaded' => false,
+				'downloadlink' => false,
+				'last_updated' => false,
+				'homepage' => false,
+				'tags' => false,
+				'template' => false,
+				'screenshot_url' => false,
+				'preview_url' => false,
+				'author' => false,
+				'description' => false,
+			],
+		];
+		try {
+			$response = $this->queryAPI( 'query_themes', $request );
+		} catch ( RuntimeException $e ) {
+			if ( $this->io->isVerbose() ) {
+				$this->io->writeError( $e->getMessage() );
+			}
+			// invalidate the cache
+			return false;
+		}
+		$newest = [];
+		if ( !empty( $response['themes'] ) && is_array( $response['themes'] ) ) {
+			foreach ( $response['themes'] as $theme ) {
+				$newest[] = $theme['slug'];
+			}
+		}
+		// do we even have a provider list and old set of newest to work off of?
+		if ( is_array( $providerHash ) && $lastNewest = $cache->read( 'newest.json' ) ) {
+			// the newest from the last time we checked
+			if ( $lastNewest = json_decode( $lastNewest ) ) {
+				$newProviders = array_diff( $newest, $lastNewest );
+				// if the number of new providers is equal to number we pulled, assume there may be more and invalidate the cache
+				if ( count( $newProviders ) < self::newestNum ) {
+					$url = reset( $this->config['url'] );
+					foreach ( $newProviders as $name ) {
+						// full path to this provider in the SVN repo, no trailing slash
+						$providerHash[ $name ] = "$url/$name";
+					}
+				} else {
+					$providerHash = false;
+				}
+			} else {
+				$providerHash = false;
+			}
+		}
+		// save the newest plugins to the cache
+		$cache->write( 'newest.json', json_encode( $newest ) );
+		return $providerHash;
 	}
 
 }
