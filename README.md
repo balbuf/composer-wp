@@ -156,48 +156,48 @@ Plugins developed by the WordPress community.
 
 ||Details|
 |---|---|
-|Repo Name|`plugins`|
-|Vendor Names|`wordpress-plugin` (package type: `wordpress-plugin`) and `wordpress-muplugin` (package type: `wordpress-muplugin`)|
-|Package Names|Package names match the slug found in the plugin's URL, e.g. [https://wordpress.org/plugins/oomph-clone-widgets/](https://wordpress.org/plugins/oomph-clone-widgets/) is `oomph-clone-widgets`.|
-|Versions|All version releases as well as `dev-trunk`.|
-|SVN Source|[https://plugins.svn.wordpress.org/](https://plugins.svn.wordpress.org/)|
-|Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
+|**Repo Name**|`plugins`|
+|**Vendor Names**|`wordpress-plugin` (package type: `wordpress-plugin`) and `wordpress-muplugin` (package type: `wordpress-muplugin`)|
+|**Package Names**|Package names match the slug found in the plugin's URL, e.g. [https://wordpress.org/plugins/oomph-clone-widgets/](https://wordpress.org/plugins/oomph-clone-widgets/) is `oomph-clone-widgets`.|
+|**Versions**|All version releases as well as `dev-trunk`.|
+|**SVN Source**|[https://plugins.svn.wordpress.org/](https://plugins.svn.wordpress.org/)|
+|**Caching**|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
 
 #### WordPress.org Themes ([https://wordpress.org/themes/](https://wordpress.org/themes/))
 Themes developed by the WordPress community.
 
 ||Details|
 |---|---|
-|Repo Name|`themes`|
-|Vendor Names|`wordpress-theme` (package type: `wordpress-theme`)|
-|Package Names|Package names match the slug found in the theme's URL, e.g. [https://wordpress.org/themes/twentyfourteen/](https://wordpress.org/themes/twentyfourteen/) is `twentyfourteen`.|
-|Versions|Version releases only; no `dev-trunk`.|
-|SVN Source|[https://themes.svn.wordpress.org/](https://themes.svn.wordpress.org/)|
-|Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
+|**Repo Name**|`themes`|
+|**Vendor Names**|`wordpress-theme` (package type: `wordpress-theme`)|
+|**Package Names**|Package names match the slug found in the theme's URL, e.g. [https://wordpress.org/themes/twentyfourteen/](https://wordpress.org/themes/twentyfourteen/) is `twentyfourteen`.|
+|**Versions**|Version releases only; no `dev-trunk`.|
+|**SVN Source**|[https://themes.svn.wordpress.org/](https://themes.svn.wordpress.org/)|
+|**Caching**|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
 
 #### WordPress Core ([https://wordpress.org/download/](https://wordpress.org/download/))
 WordPress core releases, including major versions and security/bugfix updates.
 
 ||Details|
 |---|---|
-|Repo Name|`core`|
-|Vendor Names|`wordpress` or `wordpress-core` (package type: `wordpress-core`)|
-|Package Names|`wordpress` is the only package.|
-|Versions|Version releases as well as `dev-trunk`.|
-|SVN Source|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
-|Caching|This package listing is not cached by default to ensure updates are available immediately.|
+|**Repo Name**|`core`|
+|**Vendor Names**|`wordpress` or `wordpress-core` (package type: `wordpress-core`)|
+|**Package Names**|`wordpress` is the only package.|
+|**Versions**|Version releases as well as `dev-trunk`.|
+|**SVN Source**|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
+|**Caching**|This package listing is not cached by default to ensure updates are available immediately.|
 
 #### WordPress.com Themes ([https://theme.wordpress.com/](https://theme.wordpress.com/themes/sort/free/))
 Free themes that are offered for WordPress.com hosted sites but may also be used on self-hosted sites.
 
 ||Details|
 |---|---|
-|Repo Name|`wpcom-themes`|
-|Vendor Names|`wordpress-com` (package type: `wordpress-theme`)|
-|Package Names|Package names match the slug found in the theme's URL, e.g. [https://theme.wordpress.com/themes/balloons/](https://theme.wordpress.com/themes/balloons/) is `balloons`.|
-|Versions|`dev-trunk` only; no individual version releases.|
-|SVN Source|[https://wpcom-themes.svn.automattic.com/](https://wpcom-themes.svn.automattic.com/)|
-|Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
+|**Repo Name**|`wpcom-themes`|
+|**Vendor Names**|`wordpress-com` (package type: `wordpress-theme`)|
+|**Package Names**|Package names match the slug found in the theme's URL, e.g. [https://theme.wordpress.com/themes/balloons/](https://theme.wordpress.com/themes/balloons/) is `balloons`.|
+|**Versions**|`dev-trunk` only; no individual version releases.|
+|**SVN Source**|[https://wpcom-themes.svn.automattic.com/](https://wpcom-themes.svn.automattic.com/)|
+|**Caching**|This package listing is cached for 1 week by default as the list changes infrequently.|
 
 #### WordPress VIP Plugins ([https://vip.wordpress.com/plugins/](https://vip.wordpress.com/plugins/))
 Plugins that are sanctioned for use on WordPress VIP hosted sites. _Note:_ These plugins may not work correctly outside of
@@ -206,12 +206,12 @@ for more information about replicating the WordPress VIP environment.
 
 ||Details|
 |---|---|
-|Repo Name|`vip-plugins`|
-|Vendor Names|`wordpress-vip` (package type: `wordpress-plugin`)|
-|Package Names|Package names generally match the slug found in the plugin's URL, e.g. [https://vip.wordpress.com/plugins/ooyala/](https://vip.wordpress.com/plugins/ooyala/) is `ooyala`. WordPress VIP also has a "release candidate" process to evaluate plugins before they are officially released. These package names are appended with `-rc`.|
-|Versions|`dev-trunk` only; no individual version releases.|
-|SVN Source|[https://vip-svn.wordpress.com/plugins/](https://vip-svn.wordpress.com/plugins/)|
-|Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
+|**Repo Name**|`vip-plugins`|
+|**Vendor Names**|`wordpress-vip` (package type: `wordpress-plugin`)|
+|**Package Names**|Package names generally match the slug found in the plugin's URL, e.g. [https://vip.wordpress.com/plugins/ooyala/](https://vip.wordpress.com/plugins/ooyala/) is `ooyala`. WordPress VIP also has a "release candidate" process to evaluate plugins before they are officially released. These package names are appended with `-rc`.|
+|**Versions**|`dev-trunk` only; no individual version releases.|
+|**SVN Source**|[https://vip-svn.wordpress.com/plugins/](https://vip-svn.wordpress.com/plugins/)|
+|**Caching**|This package listing is cached for 1 week by default as the list changes infrequently.|
 
 #### WordPress Core - Development Version ([https://develop.svn.wordpress.org/](https://develop.svn.wordpress.org/))
 The WordPress core development repo stays in sync with the main core repo but also includes the unit test framework and
@@ -220,9 +220,9 @@ enabled to use as a dependency, as it shares a vendor namespace with the regular
 
 ||Details|
 |---|---|
-|Repo Name|`develop`|
-|Vendor Names|`wordpress` or `wordpress-core` (package type: `wordpress-develop`)|
-|Package Names|`develop` is the only package.|
-|Versions|Version releases as well as `dev-trunk`.|
-|SVN Source|[https://develop.svn.wordpress.org/](https://core.svn.wordpress.org/)|
-|Caching|This package listing is not cached by default to ensure updates are available immediately.|
+|**Repo Name**|`develop`|
+|**Vendor Names**|`wordpress` or `wordpress-core` (package type: `wordpress-develop`)|
+|**Package Names**|`develop` is the only package.|
+|**Versions**|Version releases as well as `dev-trunk`.|
+|**SVN Source**|[https://develop.svn.wordpress.org/](https://core.svn.wordpress.org/)|
+|**Caching**|This package listing is not cached by default to ensure updates are available immediately.|
