@@ -9,7 +9,7 @@ Composer-WP enables you to handle WordPress core releases, plugins, and themes e
 $ composer global require balbuf/composer-wp
 ```
 
-_Composer-WP must be installed globally_ so that the plugin will be loaded before
+_**Composer-WP must be installed globally**_ so that the plugin will be loaded before
 the project's dependencies are resolved.
 
 As such, it is a good idea to include this as a build step for your project:
@@ -50,7 +50,7 @@ for managing packages that are not publicly listed, such as proprietary or paid 
 * [WordPress core releases](https://wordpress.org/download/)
 * [WordPress.com free themes](https://theme.wordpress.com/themes/sort/free/)
 * [WordPress VIP Plugins](https://vip.wordpress.com/plugins/)
-* [WordPress core development repository](https://develop.svn.wordpress.org/) (which includes the unit test framework and additional tools)
+* [WordPress core development repository](https://develop.svn.wordpress.org/) (includes the unit test framework and i18l tools)
 
 #### Manage proprietary/paid plugins and themes by simply dropping them in a directory
 Composer-WP provides a new repo type that can contain standard zipped plugins or themes in a private directory.
@@ -102,7 +102,7 @@ only requires plugins from the WordPress.org directory, no time is wasted by dow
 list of available themes that you don't care about.
 
 #### Graceful handling of packages that use non-standard version identifiers
-Versioning standards are not enforced for packages in the WordPress plugin and theme repos. Instead
+Versioning standards are not enforced for packages in the WordPress plugin repo. Instead
 of ignoring these packages, Composer-WP will try to normalize the version identifier so that it is
 parsable by composer. If all else fails, the package is still provided as a generic 'dev' version.
 
@@ -116,7 +116,7 @@ First, make sure Composer-WP is installed globally:
 $ composer global require balbuf/composer-wp
 ```
 
-Without any additional configuration, the packages from the official WordPress directories are ready to be used:
+Without any additional configuration, packages from the official WordPress directories are ready to be used:
 
 ```
 $ composer require wordpress-plugin/oomph-clone-widgets
@@ -127,3 +127,102 @@ or searched:
 ```
 $ composer search debug bar
 ```
+
+A simple `composer.json` file for a WordPress site might look like:
+
+```json
+{
+  "name": "My WordPress Site",
+  "require": {
+    "wordpress/wordpress": "^4.4",
+    "wordpress-plugin/oomph-clone-widgets": "^1.0",
+    "wordpress-plugin/getty-images": "^2.4",
+    "wordpress-theme/zoo": "~1.8",
+    "wordpress-muplugin/wordpress-importer": "*"
+  }
+}
+```
+
+Please refer to the official [composer documentation](https://getcomposer.org/doc/) for more information on general usage.
+
+### Built-in WordPress Repositories
+
+Composer-WP has several built-in repositories that are automatically loaded when you request packages from them.
+Each repo has its own set of vendor names which are used to determine which repos to load for the request packages.
+The repo name can be used to explicitly enable or disable the given repo via your `composer.json` file (see below).
+
+#### [WordPress.org Plugins](https://wordpress.org/plugins/)
+Plugins developed by the WordPress community.
+
+||Details|
+|---|---|
+|Repo Name|`plugins`|
+|Vendor Names|`wordpress-plugin` (package type: `wordpress-plugin`) and `wordpress-muplugin` (package type: `wordpress-muplugin`)|
+|Package Names|Package names match the slug found in the plugin's URL, e.g. [https://wordpress.org/plugins/oomph-clone-widgets/](https://wordpress.org/plugins/oomph-clone-widgets/) is `oomph-clone-widgets`.|
+|Versions|All version releases as well as `dev-trunk`.|
+|SVN Source|[https://plugins.svn.wordpress.org/](https://plugins.svn.wordpress.org/)|
+|Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
+
+#### [WordPress.org Theme Directory](https://wordpress.org/themes/)
+Themes developed by the WordPress community.
+
+||Details|
+|---|---|
+|Repo Name|`themes`|
+|Vendor Names|`wordpress-theme` (package type: `wordpress-theme`)|
+|Package Names|Package names match the slug found in the theme's URL, e.g. [https://wordpress.org/themes/twentyfourteen/](https://wordpress.org/themes/twentyfourteen/) is `twentyfourteen`.|
+|Versions|Version releases only; no `dev-trunk`.|
+|SVN Source|[https://themes.svn.wordpress.org/](https://themes.svn.wordpress.org/)|
+|Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
+
+#### [WordPress core releases](https://wordpress.org/download/)
+WordPress core releases, including major versions and security/bugfix updates.
+
+||Details|
+|---|---|
+|Repo Name|`core`|
+|Vendor Names|`wordpress` or `wordpress-core` (package type: `wordpress-core`)|
+|Package Names|`wordpress` is the only package.|
+|Versions|Version releases as well as `dev-trunk`.|
+|SVN Source|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
+|Caching|This package listing is not cached by default to ensure updates are available immediately.|
+
+#### [WordPress.com free themes](https://theme.wordpress.com/themes/sort/free/)
+Free themes that are offered for WordPress.com hosted sites but may also be used on self-hosted sites.
+
+||Details|
+|---|---|
+|Repo Name|`wpcom-themes`|
+|Vendor Names|`wordpress-com` (package type: `wordpress-theme`)|
+|Package Names|Package names match the slug found in the theme's URL, e.g. [https://theme.wordpress.com/themes/balloons/](https://theme.wordpress.com/themes/balloons/) is `balloons`.|
+|Versions|`dev-trunk` only; no individual version releases.|
+|SVN Source|[https://wpcom-themes.svn.automattic.com/](https://wpcom-themes.svn.automattic.com/)|
+|Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
+
+#### [WordPress VIP Plugins](https://vip.wordpress.com/plugins/)
+Plugins that are sanctioned for use on WordPress VIP hosted sites. These plugins may not work correctly outside of
+the WordPress VIP environment. See the [VIP Quickstart documentation](https://vip.wordpress.com/documentation/quickstart/)
+for more information about replicating the WordPress VIP environment.
+
+||Details|
+|---|---|
+|Repo Name|`vip-plugins`|
+|Vendor Names|`wordpress-vip` (package type: `wordpress-plugin`)|
+|Package Names|Package names generally match the slug found in the plugin's URL, e.g. [https://vip.wordpress.com/plugins/ooyala/](https://vip.wordpress.com/plugins/ooyala/) is `ooyala`. WordPress VIP also has a "release candidate" process to evaluate plugins before they are officially released. These package names are appended with `-rc`.|
+|Versions|`dev-trunk` only; no individual version releases.|
+|SVN Source|[https://vip-svn.wordpress.com/plugins/](https://vip-svn.wordpress.com/plugins/)|
+|Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
+
+#### [WordPress core development repository](https://develop.svn.wordpress.org/)
+The WordPress core development repo stays in sync with the main core repo but also includes the unit test framework and
+additional tools for internationalization. Unlike the the other built-in repos, the `develop` repo must be explicitly
+enabled to use as a dependency, as it shares a vendor namespace with the regular `core` repo.
+
+||Details|
+|---|---|
+|Repo Name|`develop`|
+|Vendor Names|`wordpress` or `wordpress-core` (package type: `wordpress-develop`)|
+|Package Names|`develop` is the only package.|
+|Versions|Version releases as well as `dev-trunk`.|
+|SVN Source|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
+|Caching|This package listing is not cached by default to ensure updates are available immediately.|
