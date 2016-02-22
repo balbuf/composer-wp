@@ -50,7 +50,7 @@ for managing packages that are not publicly listed, such as proprietary or paid 
 * [WordPress core releases](https://wordpress.org/download/)
 * [WordPress.com free themes](https://theme.wordpress.com/themes/sort/free/)
 * [WordPress VIP Plugins](https://vip.wordpress.com/plugins/)
-* [WordPress core development repository](https://develop.svn.wordpress.org/) (includes the unit test framework and i18l tools)
+* [WordPress core development repository](https://develop.svn.wordpress.org/) (includes the unit test framework and i18n tools)
 
 #### Manage proprietary/paid plugins and themes by simply dropping them in a directory
 Composer-WP provides a new repo type that can contain standard zipped plugins or themes in a private directory.
