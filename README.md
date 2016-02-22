@@ -19,7 +19,7 @@ composer global require balbuf/composer-wp
 composer install
 ```
 
-## Description
+## About
 
 Similar to [wpackagist](http://wpackagist.org/), Composer-WP leverages the official WordPress SVN repositories
 to provide plugins and themes as composer packages. However, the packages which Composer-WP provides are
