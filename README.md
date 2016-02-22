@@ -151,7 +151,7 @@ Composer-WP has several built-in repositories that are automatically loaded when
 Each repo has its own set of vendor names which are used to determine which repos to load for the request packages.
 The repo name can be used to explicitly enable or disable the given repo via your `composer.json` file (see below).
 
-#### [WordPress.org Plugins](https://wordpress.org/plugins/)
+#### WordPress.org Plugins ([https://wordpress.org/plugins/](https://wordpress.org/plugins/))
 Plugins developed by the WordPress community.
 
 ||Details|
@@ -163,7 +163,7 @@ Plugins developed by the WordPress community.
 |SVN Source|[https://plugins.svn.wordpress.org/](https://plugins.svn.wordpress.org/)|
 |Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
 
-#### [WordPress.org Theme Directory](https://wordpress.org/themes/)
+#### WordPress.org Themes ([https://wordpress.org/themes/](https://wordpress.org/themes/))
 Themes developed by the WordPress community.
 
 ||Details|
@@ -175,7 +175,7 @@ Themes developed by the WordPress community.
 |SVN Source|[https://themes.svn.wordpress.org/](https://themes.svn.wordpress.org/)|
 |Caching|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
 
-#### [WordPress core releases](https://wordpress.org/download/)
+#### WordPress Core ([https://wordpress.org/download/](https://wordpress.org/download/))
 WordPress core releases, including major versions and security/bugfix updates.
 
 ||Details|
@@ -187,7 +187,7 @@ WordPress core releases, including major versions and security/bugfix updates.
 |SVN Source|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
 |Caching|This package listing is not cached by default to ensure updates are available immediately.|
 
-#### [WordPress.com free themes](https://theme.wordpress.com/themes/sort/free/)
+#### WordPress.com Themes ([https://theme.wordpress.com/](https://theme.wordpress.com/themes/sort/free/))
 Free themes that are offered for WordPress.com hosted sites but may also be used on self-hosted sites.
 
 ||Details|
@@ -199,8 +199,8 @@ Free themes that are offered for WordPress.com hosted sites but may also be used
 |SVN Source|[https://wpcom-themes.svn.automattic.com/](https://wpcom-themes.svn.automattic.com/)|
 |Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
 
-#### [WordPress VIP Plugins](https://vip.wordpress.com/plugins/)
-Plugins that are sanctioned for use on WordPress VIP hosted sites. These plugins may not work correctly outside of
+#### WordPress VIP Plugins ([https://vip.wordpress.com/plugins/](https://vip.wordpress.com/plugins/))
+Plugins that are sanctioned for use on WordPress VIP hosted sites. _Note:_ These plugins may not work correctly outside of
 the WordPress VIP environment. See the [VIP Quickstart documentation](https://vip.wordpress.com/documentation/quickstart/)
 for more information about replicating the WordPress VIP environment.
 
@@ -213,9 +213,9 @@ for more information about replicating the WordPress VIP environment.
 |SVN Source|[https://vip-svn.wordpress.com/plugins/](https://vip-svn.wordpress.com/plugins/)|
 |Caching|This package listing is cached for 1 week by default as the list changes infrequently.|
 
-#### [WordPress core development repository](https://develop.svn.wordpress.org/)
+#### WordPress Core - Development Version ([https://develop.svn.wordpress.org/](https://develop.svn.wordpress.org/))
 The WordPress core development repo stays in sync with the main core repo but also includes the unit test framework and
-additional tools for internationalization. Unlike the the other built-in repos, the `develop` repo must be explicitly
+additional tools for internationalization. _Note:_ Unlike the the other built-in repos, the `develop` repo must be explicitly
 enabled to use as a dependency, as it shares a vendor namespace with the regular `core` repo.
 
 ||Details|
@@ -224,5 +224,5 @@ enabled to use as a dependency, as it shares a vendor namespace with the regular
 |Vendor Names|`wordpress` or `wordpress-core` (package type: `wordpress-develop`)|
 |Package Names|`develop` is the only package.|
 |Versions|Version releases as well as `dev-trunk`.|
-|SVN Source|[https://core.svn.wordpress.org/](https://core.svn.wordpress.org/)|
+|SVN Source|[https://develop.svn.wordpress.org/](https://core.svn.wordpress.org/)|
 |Caching|This package listing is not cached by default to ensure updates are available immediately.|
