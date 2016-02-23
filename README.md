@@ -216,7 +216,7 @@ Plugins developed by the WordPress community.
 |**Repo Name**|`plugins`|
 |**Vendor Names**|`wordpress-plugin` (package type: `wordpress-plugin`) and `wordpress-muplugin` (package type: `wordpress-muplugin`)|
 |**Package Names**|Package names match the slug found in the plugin's URL, e.g. [https://wordpress.org/plugins/oomph-clone-widgets/](https://wordpress.org/plugins/oomph-clone-widgets/) is `oomph-clone-widgets`.|
-|**Versions**|All version releases as well as `dev-trunk`.|
+|**Versions**|Version releases as well as `dev-trunk`.|
 |**SVN Source**|[https://plugins.svn.wordpress.org/](https://plugins.svn.wordpress.org/)|
 |**Caching**|The package listing is cached for as long as `composer config cache-ttl` if it doesn't change. However, each time the repo is used, a "package delta" is obtained to update this cached list with new package names, so the cache is likely to change regularly.|
 
@@ -252,7 +252,7 @@ Free themes that are offered for WordPress.com hosted sites but may also be used
 |**Repo Name**|`wpcom-themes`|
 |**Vendor Names**|`wordpress-com` (package type: `wordpress-theme`)|
 |**Package Names**|Package names match the slug found in the theme's URL, e.g. [https://theme.wordpress.com/themes/balloons/](https://theme.wordpress.com/themes/balloons/) is `balloons`.|
-|**Versions**|`dev-trunk` only; no individual version releases.|
+|**Versions**|`dev-master` only; no individual version releases.|
 |**SVN Source**|[https://wpcom-themes.svn.automattic.com/](https://wpcom-themes.svn.automattic.com/)|
 |**Caching**|This package listing is cached for 1 week by default as the list changes infrequently.|
 
@@ -266,7 +266,7 @@ for more information about replicating the WordPress VIP environment.
 |**Repo Name**|`vip-plugins`|
 |**Vendor Names**|`wordpress-vip` (package type: `wordpress-plugin`)|
 |**Package Names**|Package names generally match the slug found in the plugin's URL, e.g. [https://vip.wordpress.com/plugins/ooyala/](https://vip.wordpress.com/plugins/ooyala/) is `ooyala`. WordPress VIP also has a "release candidate" process to evaluate plugins before they are officially released. These package names are appended with `-rc`.|
-|**Versions**|`dev-trunk` only; no individual version releases.|
+|**Versions**|`dev-master` only; no individual version releases.|
 |**SVN Source**|[https://vip-svn.wordpress.com/plugins/](https://vip-svn.wordpress.com/plugins/)|
 |**Caching**|This package listing is cached for 1 week by default as the list changes infrequently.|
 
