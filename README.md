@@ -122,11 +122,64 @@ Without any additional configuration, packages from the official WordPress direc
 $ composer require wordpress-plugin/oomph-clone-widgets
 ```
 
-or searched:
+### Determining a Package Name
+The package names used by Composer-WP are formed using a vendor name specific to the particular repo and
+the package "slug":
 
 ```
-$ composer search debug bar
+vendor/slug
 ```
+
+The vendor names and package naming conventions for each built-in WordPress repo can be found [below](#built-in-wordpress-repositories).
+
+#### Plugins and Themes
+For plugins and themes in the WordPress directories, the slug is the sanitized name of the package
+that appears in its URL.
+
+For example, suppose you want to install the Contact Form 7 plugin:
+[https://wordpress.org/plugins/contact-form-7/](https://wordpress.org/plugins/contact-form-7/). The slug of the plugin would be `contact-form-7`, and the default vendor name for the WordPress.org Plugin Directory is `wordpress-plugin`.
+The full package name would be `wordpress-plugin/contact-form-7`.
+
+>##### Package Name Bookmarklet
+>For convenience in determining the proper package name for a plugin or theme, you can add the following
+>JavaScript snippet as a bookmarklet in your browser. If you are on the detail page for a plugin or theme on
+>[wordpress.org](https://wordpress.org/), [theme.wordpress.com](https://theme.wordpress.com/),
+>or [vip.wordpress.com](https://theme.wordpress.com/), this bookmarklet will present you with 
+>the package name using the default vendor name for that repo:
+>
+>```js
+>javascript:void((function(r,l,w,h,s,p,e,u,m){l=l.match.bind(l);u=h+w+'\\.org\\/';if(m=l(new r(u+'themes'+s)))return p(e,w+'-theme/'+m[1]);if(m=l(new r(u+'plugins'+s)))return p(e,w+'-plugin/'+m[1]);if(m=l(new r(h+'theme\\.'+w+'\\.com\\/themes'+s)))return p(e,w+'-com/'+m[1]);if(m=l(new r(h+'vip\\.'+w+'\\.com\\/plugins'+s)))return p(e,w+'-vip/'+m[1]);alert(e+' not found')})(RegExp,location.href,'wordpress','^https?:\\/\\/','\\/([^\\/]+)\\/?$',prompt,'Composer-WP package name:'));
+>```
+
+#### WordPress Core
+
+Wordpress core releases use `wordpress` as both the vendor and slug:
+
+```
+$ composer require wordpress/wordpress
+```
+
+#### Find Packages with Composer Commands
+
+`composer search` and `composer show` are useful commands for finding and verifying packages.
+
+You can use `composer search` to find a package name:
+
+```
+$ composer search contact form 7
+```
+
+Where possible, Composer-WP uses full text searching to match against names and descriptions.
+
+You can use `composer show` to get more information about a package or simply verify that it exists:
+
+```
+$ composer show wordpress-plugin/contact-form-7
+```
+
+If the package exists, composer will provide additional details such as available versions.
+
+#### composer.json Example
 
 A simple `composer.json` file for a WordPress site might look like:
 
@@ -135,13 +188,17 @@ A simple `composer.json` file for a WordPress site might look like:
   "name": "My WordPress Site",
   "require": {
     "wordpress/wordpress": "^4.4",
-    "wordpress-plugin/oomph-clone-widgets": "^1.0",
-    "wordpress-plugin/getty-images": "^2.4",
     "wordpress-theme/zoo": "~1.8",
+    "wordpress-plugin/getty-images": "^2.4",
     "wordpress-muplugin/wordpress-importer": "*"
+  },
+  "require-dev": {
+    "wordpress-plugin/debug-bar": "0.8.2"
   }
 }
 ```
+
+#### Further Reading
 
 Please refer to the official [composer documentation](https://getcomposer.org/doc/) for more information on general usage.
 
