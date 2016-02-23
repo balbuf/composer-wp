@@ -143,8 +143,8 @@ The full package name would be `wordpress-plugin/contact-form-7`.
 >##### Package Name Bookmarklet
 >For convenience in determining the proper package name for a plugin or theme, you can add the following
 >JavaScript snippet as a bookmarklet in your browser. If you are on the detail page for a plugin or theme on
->[wordpress.org](https://wordpress.org/), [theme.wordpress.com](https://theme.wordpress.com/),
->or [vip.wordpress.com](https://theme.wordpress.com/), this bookmarklet will present you with 
+>[wordpress.org](https://wordpress.org/), [theme.wordpress.com](https://theme.wordpress.com/themes/sort/free/),
+>or [vip.wordpress.com](https://vip.wordpress.com/plugins/), this bookmarklet will present you with 
 >the package name using the default vendor name for that repo:
 >
 >```js
@@ -153,7 +153,7 @@ The full package name would be `wordpress-plugin/contact-form-7`.
 
 #### WordPress Core
 
-Wordpress core releases use `wordpress` as both the vendor and slug:
+WordPress core releases use `wordpress` as both the vendor and slug:
 
 ```
 $ composer require wordpress/wordpress
