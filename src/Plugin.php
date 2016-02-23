@@ -6,20 +6,19 @@
  * - global config for vendor aliases / repos / etc?
  * - alternatively use ZipArchive for local handling
  * - how are the non-ascii package names handled?
- * - github hosted plugins possibly missing composer.json
- * - composer autoload order
- * - bookmarklet for getting the require line from a plugin/theme page
+ * - github repo type: provide one or more URLs to github repos or users/orgs; those repos will be scanned for themes and plugins
+ * - custom installer and mu-plugin autoloader
  * - git alternative for core and develop
  * - add unit tests
  * - add readme
  * - create a script to scan the headers of every plugin to identify anomolies
  * - caching for SSH zip repos
- * - plain old directory repo
+ * - cache plugin/theme info for .org repos
  * - allow additional ssh options set via environment vars
  * - figure out what is going on with the findPackage(s) methods
  * - look into whether the 'replaces' packages are generating extraneous calls to the SVN repo
  * - add a check to see if there is a new version of the plugin available and provide notice if so
- * - add support for envato packages
+ * - envato repo type
  */
 
 namespace BalBuf\ComposerWP;

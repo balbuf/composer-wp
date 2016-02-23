@@ -1,6 +1,10 @@
 #!/usr/bin/env php
 <?php
 
+/**
+ * Time how long it takes to download the complete providers list from a composer repository.
+ */
+
 if ( empty( $argv[1] ) ) {
 	throw new RuntimeException( 'No URL provided' );
 }
