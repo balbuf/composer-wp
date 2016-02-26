@@ -30,17 +30,23 @@ use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Config;
 use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
 use Composer\Plugin\PluginEvents;
+use Composer\Script\ScriptEvents;
 use Composer\Plugin\PreFileDownloadEvent;
 use BalBuf\ComposerWP\Util\SSHFilesystem;
+use Composer\EventDispatcher\Event;
 
 
 class Plugin implements PluginInterface, EventSubscriberInterface {
 
 	// the plugin properties are defined in this 'extra' field
 	const extra_field = 'composer-wp';
+	const installer_field = 'installer';
+	const repo_field = 'repositories';
+	const vendor_field = 'vendors';
 	protected $composer;
 	protected $io;
 	protected $extra;
+	protected $installer;
 	// these are builtin repos that are named and can be enabled/disabled in composer.json
 	// the name maps to a class in Repository\Config\Builtin which defines its config options
 	protected $builtinRepos = [
@@ -73,6 +79,31 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
 		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : [];
+		$this->extra += [ self::installer_field => [] ];
+
+		// configure the custom installer, if enabled
+		if ( is_array( $installInfo = $this->extra[ self::installer_field ] ) ) {
+			// set the default install configuration
+			$installInfo += [
+				'wordpress-path' => 'wp',
+				'wp-content-path' => 'wp-content',
+				'path-mapping' => [],
+				'mu-plugin-autoloader' => true,
+				'symlink-wp-content' => true,
+			];
+			if ( $installInfo['wordpress-path'] ) {
+				$installInfo['path-mapping']['wordpress-core'] = $installInfo['wordpress-path'];
+			}
+			if ( $wpContent = $installInfo['wp-content-path'] ) {
+				$installInfo['path-mapping'] += [
+					'wordpress-plugin' => "$wpContent/plugins",
+					'wordpress-muplugin' => "$wpContent/mu-plugins",
+					'wordpress-theme' => "$wpContent/themes",
+				];
+			}
+			$this->installer = new WordPressInstaller( $io, $composer, $installInfo );
+			$composer->getInstallationManager()->addInstaller( $this->installer );
+		}
 
 		// let's reflect for a moment
 		// we need to access the InputInterface, which is a protected member of $io
@@ -87,11 +118,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// these will be all the repos we try to enable
 		$repos = [];
 		// get the user-defined repos first
-		if ( !empty( $this->extra['repositories'] ) ) {
-			if ( !is_array( $this->extra['repositories'] ) ) {
-				throw new \Exception( '[extra][' . self::extra_field . '][repositories] should be an array of repository definitions.' );
+		if ( !empty( $this->extra[ self::repo_field ] ) ) {
+			if ( !is_array( $this->extra[ self::repo_field ] ) ) {
+				throw new \Exception( '[extra][' . self::extra_field . '][' . self::repo_field . '] should be an array of repository definitions.' );
 			}
-			foreach ( $this->extra['repositories'] as $repo ) {
+			foreach ( $this->extra[ self::repo_field ] as $repo ) {
 				// see if this includes definition(s) about the builtin repos
 				$defaults = array_intersect_key( $repo, $this->builtinRepos );
 				// note: this means repo property names should not overlap with builtin repo names
@@ -202,7 +233,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// grab the vendor info from extra (only the first time)
 		if ( !isset( $filterDisable, $vendorAliases, $vendorDisable ) ) {
 			// get the user-defined mapping of vendor aliases
-			$vendorAliases = !empty( $this->extra['vendors'] ) ? $this->extra['vendors'] : [];
+			$vendorAliases = !empty( $this->extra[ self::vendor_field ] ) ? $this->extra[ self::vendor_field ] : [];
 			// get all of the keys that point to a falsey value - these vendors will be disabled
 			$vendorDisable = array_keys( $vendorAliases, false );
 			// now remove those falsey values
@@ -239,6 +270,12 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			PluginEvents::PRE_FILE_DOWNLOAD => [
 				[ 'setRfs', 0 ],
 			],
+			ScriptEvents::POST_INSTALL_CMD => [
+				[ 'postInstall', 0 ],
+			],
+			ScriptEvents::POST_UPDATE_CMD => [
+				[ 'postInstall', 0 ],
+			],
 		];
 	}
 
@@ -253,6 +290,25 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				$rfs = new SSHFilesystem( $this->io );
 			}
 			$event->setRemoteFilesystem( $rfs );
+		}
+	}
+
+	/**
+	 * Take some additional actions after we have installed or updated packages.
+	 */
+	public function postInstall( Event $event ) {
+		if ( !( $installer = $this->getInstaller() ) ) {
+			return;
+		}
+		$installInfo = $installer->getInstallInfo();
+		// replace the wp-content dir in wp with a symlink to the real wp-content folder
+		if ( $installInfo['symlink-wp-content'] && $installInfo['wordpress-path'] && $installInfo['wp-content-path'] ) {
+			$dir = getcwd() . '/' . $installInfo['wordpress-path'] . '/wp-content';
+			if ( is_dir( $dir ) && !is_link( $dir ) ) {
+				$dir = realpath( $dir );
+				$installer->getFilesystem()->removeDirectory( $dir );
+				symlink( realpath( $installInfo['wp-content-path'] ), $dir );
+			}
 		}
 	}
 
@@ -278,6 +334,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	 */
 	public function getIO() {
 		return $this->io;
+	}
+
+	/**
+	 * Get the installer object, if it was set.
+	 * @return InstallerInterface
+	 */
+	public function getInstaller() {
+		return $this->installer;
 	}
 
 }

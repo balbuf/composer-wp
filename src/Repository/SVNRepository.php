@@ -230,9 +230,6 @@ class SVNRepository extends ComposerRepository {
 					// an empty reference and a single slash are effectively the same
 					'reference' => $reference ?: '/',
 				],
-				'require' => [
-					'oomphinc/composer-installers-extender' => '^1.0',
-				],
 			];
 			// next, fill in any defaults that were missing
 			if ( ( $defaults = $this->repoConfig->get( 'package-defaults' ) ) && is_array( $defaults ) ) {
