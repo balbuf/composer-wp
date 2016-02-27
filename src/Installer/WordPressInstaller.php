@@ -4,7 +4,7 @@
  * Custom installer for wordpress core, plugins, and themes.
  */
 
-namespace BalBuf\ComposerWP;
+namespace BalBuf\ComposerWP\Installer;
 
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;

@@ -19,6 +19,8 @@
  * - look into whether the 'replaces' packages are generating extraneous calls to the SVN repo
  * - add a check to see if there is a new version of the plugin available and provide notice if so
  * - envato repo type
+ * - possibility of mu-plugins dir being moved
+ * - drop ins?
  */
 
 namespace BalBuf\ComposerWP;
@@ -26,6 +28,7 @@ namespace BalBuf\ComposerWP;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use BalBuf\ComposerWP\Installer\WordPressInstaller;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Config;
 use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
@@ -297,18 +300,50 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	 * Take some additional actions after we have installed or updated packages.
 	 */
 	public function postInstall( Event $event ) {
+		// bail if the installer is disabled
 		if ( !( $installer = $this->getInstaller() ) ) {
 			return;
 		}
 		$installInfo = $installer->getInstallInfo();
+		// bail if wp-content handling is disabled
+		if ( !$installInfo['wp-content-path'] ) {
+			return;
+		}
 		// replace the wp-content dir in wp with a symlink to the real wp-content folder
-		if ( $installInfo['symlink-wp-content'] && $installInfo['wordpress-path'] && $installInfo['wp-content-path'] ) {
+		if ( $installInfo['symlink-wp-content'] && $installInfo['wordpress-path'] ) {
 			$dir = getcwd() . '/' . $installInfo['wordpress-path'] . '/wp-content';
 			if ( is_dir( $dir ) && !is_link( $dir ) ) {
 				$dir = realpath( $dir );
 				$installer->getFilesystem()->removeDirectory( $dir );
 				symlink( realpath( $installInfo['wp-content-path'] ), $dir );
 			}
+		}
+		// add the mu-plugins autoloader
+		if ( $installInfo['mu-plugin-autoloader'] ) {
+			$muPluginsDir = realpath( $installInfo['wp-content-path'] . '/mu-plugins' );
+			// @todo - only copy this if it has changed?
+			copy( __DIR__ . '/Installer/composer-wp-autoloader.php', "$muPluginsDir/composer-wp-autoloader.php" );
+			$packages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
+			$packageData = [ 'packages' => [] ];
+			// find the mu-plugin packages
+			foreach ( $packages as $package ) {
+				if ( $package->getType() === 'wordpress-muplugin' ) {
+					list(, $slug ) = explode( '/', $package->getPrettyName() );
+					// try to identify the actual plugin file
+					foreach( glob( "$muPluginsDir/$slug/*.php", \GLOB_NOSORT ) as $file ) {
+						// use the same max byte length that WP does
+						$header = file_get_contents( $file, false, null, 0, 8192 );
+						// if it has a Plugin Name, that's our girl!
+						if ( preg_match( '/^[\s*]*Plugin Name:.*$/im', $header ) ) {
+							// store as the relative path
+							$packageData['packages'][] = $slug . '/' . basename( $file );
+							break;
+						}
+					}
+				}
+			}
+			// save the package data in the mu-plugins dir
+			file_put_contents( "$muPluginsDir/composer-wp-packages.json", json_encode( $packageData ) );
 		}
 	}
 
