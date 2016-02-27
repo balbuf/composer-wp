@@ -38,14 +38,16 @@ class MUPluginsAutoloader {
 		$packageData = json_decode( file_get_contents( $dataFile ), true );
 		// do we have packages? maybe no if json/file error
 		if ( !empty( $packageData['packages'] ) ) {
+			// get the mu-plugins path relative to plugins so that plugins_url functions work properly
+			$muPath = $this->muPluginsRelPath();
 			foreach ( $packageData['packages'] as $pluginFile ) {
-				if ( file_exists( $pluginFile = __DIR__ . '/' . $pluginFile ) ) {
-					$this->plugins[] = $pluginFile;
+				if ( file_exists( $realPath = __DIR__ . '/' . $pluginFile ) ) {
+					$this->plugins[] = $realPath;
+					// in case this directory is symlinked, inform WP about the symlink vs. real path
+					wp_register_plugin_realpath( "$muPath/$pluginFile" );
+					include_once( $realPath );
 				}
 			}
-		}
-		foreach ( $this->plugins as $pluginFile ) {
-			include_once( $pluginFile );
 		}
 		$this->pluginHooks();
 	}
@@ -76,6 +78,23 @@ class MUPluginsAutoloader {
 	 */
 	protected function pluginHooks() {
 		// @todo come back to this
+	}
+
+	/**
+	 * Get the relative path between the plugins/ dir and mu-plugins/ dir.
+	 * @return string plugins-relative path to mu-plugins
+	 */
+	protected function muPluginsRelPath() {
+		$pluginsPath = rtrim( wp_normalize_path( WP_PLUGIN_DIR ), '/' );
+		$from = explode( '/', $pluginsPath );
+		$to = explode( '/', rtrim( wp_normalize_path( WPMU_PLUGIN_DIR ), '/' ) );
+		// find where the paths diverge
+		for ( $i = 0; isset( $from[ $i ], $to[ $i ] ); $i++ ) {
+			if ( $from[ $i ] !== $to[ $i ] ) {
+				break;
+			}
+		}
+		return "$pluginsPath/" . str_repeat( '../', count( $from ) - $i ) . implode( '/', array_slice( $to, $i ) );
 	}
 
 }

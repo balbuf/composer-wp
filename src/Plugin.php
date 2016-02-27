@@ -10,7 +10,6 @@
  * - custom installer and mu-plugin autoloader
  * - git alternative for core and develop
  * - add unit tests
- * - add readme
  * - create a script to scan the headers of every plugin to identify anomolies
  * - caching for SSH zip repos
  * - cache plugin/theme info for .org repos
@@ -21,6 +20,7 @@
  * - envato repo type
  * - possibility of mu-plugins dir being moved
  * - drop ins?
+ * - consider plugin hooks: installed, activated, deactivated, etc.
  */
 
 namespace BalBuf\ComposerWP;
@@ -305,6 +305,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			return;
 		}
 		$installInfo = $installer->getInstallInfo();
+		$filesystem = $installer->getFilesystem();
 		// bail if wp-content handling is disabled
 		if ( !$installInfo['wp-content-path'] ) {
 			return;
@@ -312,10 +313,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		// replace the wp-content dir in wp with a symlink to the real wp-content folder
 		if ( $installInfo['symlink-wp-content'] && $installInfo['wordpress-path'] ) {
 			$dir = getcwd() . '/' . $installInfo['wordpress-path'] . '/wp-content';
+			// only do this if the directory exists and is not a symlink
 			if ( is_dir( $dir ) && !is_link( $dir ) ) {
 				$dir = realpath( $dir );
-				$installer->getFilesystem()->removeDirectory( $dir );
-				symlink( realpath( $installInfo['wp-content-path'] ), $dir );
+				$filesystem->removeDirectory( $dir );
+				$filesystem->relativeSymlink( realpath( $installInfo['wp-content-path'] ), $dir );
 			}
 		}
 		// add the mu-plugins autoloader
