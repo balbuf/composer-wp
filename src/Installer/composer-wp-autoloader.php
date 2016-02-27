@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Composer-WP Autoloader
  * Plugin URI: https://github.com/balbuf/composer-wp/
- * Description: An autoloader that enables standard plugins managed by composer to be loaded as must-use plugins. The autoloaded plugins are included during mu-plugin loading. An asterisk (*) next to the name of the plugin designates the plugins that have been autoloaded. Adapted from the Bedrock autoloader (https://roots.io/).
+ * Description: Enables standard plugins managed by composer to be autoloaded as must-use plugins. These plugins are included during mu-plugin loading. An asterisk (*) next to the name of the plugin designates the plugins that have been autoloaded. <em>Adapted from the <a href="https://roots.io/">Bedrock autoloader</a>.</em>
  * Version: 1.0.0
  * Author: balbuf
  * Author URI: https://github.com/balbuf
