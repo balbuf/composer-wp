@@ -18,29 +18,45 @@ if ( !is_blog_installed() ) {
 class MUPluginsAutoloader {
 
 	const package_data_file = 'composer-wp-packages.json';
+	protected $packageData = [];
 	protected $plugins = [];
 
 	function __construct() {
-		add_filter( 'show_advanced_plugins', [ $this, 'pluginsListTable' ], 0, 2 );
-		$this->loadPlugins();
-	}
-
-	/**
-	 * Load up the mu-plugin packages!
-	 */
-	function loadPlugins() {
 		// does the package data file exist and is it readable?
 		$dataFile = __DIR__ . '/' . self::package_data_file;
 		if ( !is_readable( $dataFile ) ) {
 			return;
 		}
 		// open file and parse json data
-		$packageData = json_decode( file_get_contents( $dataFile ), true );
+		$this->packageData = json_decode( file_get_contents( $dataFile ), true );
+		if ( json_last_error() !== \JSON_ERROR_NONE ) {
+			return;
+		}
+		// include the composer autoload file
+		if ( !empty( $this->packageData['autoloader']['path'] ) ) {
+			$autoloadPath = $this->packageData['autoloader']['path'];
+			if ( !empty( $this->packageData['autoloader']['relativeTo'] ) ) {
+				if ( defined( $this->packageData['autoloader']['relativeTo'] ) ) {
+					$autoloadPath = constant( $this->packageData['autoloader']['relativeTo'] ) . "/$autoloadPath";
+				}
+			}
+			if ( is_readable( $autoloadPath ) ) {
+				include_once( $autoloadPath );
+			}
+		}
+		$this->loadPlugins();
+		add_filter( 'show_advanced_plugins', [ $this, 'pluginsListTable' ], 0, 2 );
+	}
+
+	/**
+	 * Load up the mu-plugin packages!
+	 */
+	function loadPlugins() {
 		// do we have packages? maybe no if json/file error
-		if ( !empty( $packageData['packages'] ) ) {
+		if ( !empty( $this->packageData['packages'] ) ) {
 			// get the mu-plugins path relative to plugins so that plugins_url functions work properly
 			$muPath = $this->muPluginsRelPath();
-			foreach ( $packageData['packages'] as $pluginFile ) {
+			foreach ( $this->packageData['packages'] as $pluginFile ) {
 				if ( file_exists( $realPath = __DIR__ . '/' . $pluginFile ) ) {
 					$this->plugins[] = $realPath;
 					// in case this directory is symlinked, inform WP about the symlink vs. real path

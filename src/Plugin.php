@@ -21,6 +21,7 @@
  * - possibility of mu-plugins dir being moved
  * - drop ins?
  * - consider plugin hooks: installed, activated, deactivated, etc.
+ * - let installer-paths take precendence
  */
 
 namespace BalBuf\ComposerWP;
@@ -93,6 +94,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				'path-mapping' => [],
 				'mu-plugin-autoloader' => true,
 				'symlink-wp-content' => true,
+				'dev-first' => false,
 			];
 			if ( $installInfo['wordpress-path'] ) {
 				$installInfo['path-mapping']['wordpress-core'] = $installInfo['wordpress-path'];
@@ -322,11 +324,39 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		}
 		// add the mu-plugins autoloader
 		if ( $installInfo['mu-plugin-autoloader'] ) {
+			// @todo - what about if the path was changed via defining WPMU_PLUGIN_DIR?
 			$muPluginsDir = realpath( $installInfo['wp-content-path'] . '/mu-plugins' );
 			// @todo - only copy this if it has changed?
 			copy( __DIR__ . '/Installer/composer-wp-autoloader.php', "$muPluginsDir/composer-wp-autoloader.php" );
-			$packages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
+			// data which will be provided to the autoloader
 			$packageData = [ 'packages' => [] ];
+			$vendorDir = realpath( $this->composer->getConfig()->get( 'vendor-dir' ) );
+			// make the composer autoloader reference relative to the WP core dir, if we have it
+			if ( $installInfo['wordpress-path'] && is_dir( $installInfo['wordpress-path'] ) ) {
+				$packageData['autoloader'] = [
+					'path' => $filesystem->findShortestPath( realpath( $installInfo['wordpress-path'] ), $vendorDir, true ),
+					'relativeTo' => 'ABSPATH',
+				];
+			} else {
+				// otherwise make relative to the mu-plugins dir
+				$packageData['autoloader'] = [
+					'path' => $filesystem->findShortestPath( $muPluginsDir, $vendorDir, true ),
+					'relativeTo' => 'WPMU_PLUGIN_DIR',
+				];
+			}
+			$packageData['autoloader']['path'] .= '/autoload.php';
+			// used for sorting
+			$packageIndex = [];
+			// do we want the dev packages loaded first?
+			if ( $installInfo['dev-first'] ) {
+				$requires = $this->composer->getPackage()->getDevRequires() + $this->composer->getPackage()->getRequires();
+			} else {
+				$requires = $this->composer->getPackage()->getRequires() + $this->composer->getPackage()->getDevRequires();
+			}
+			// take only the keys which are the package names
+			$requires = array_keys( $requires );
+			// get all of the installed packages
+			$packages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
 			// find the mu-plugin packages
 			foreach ( $packages as $package ) {
 				if ( $package->getType() === 'wordpress-muplugin' ) {
@@ -339,11 +369,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 						if ( preg_match( '/^[\s*]*Plugin Name:.*$/im', $header ) ) {
 							// store as the relative path
 							$packageData['packages'][] = $slug . '/' . basename( $file );
+							$packageIndex[] = array_search( $package->getPrettyName(), $requires );
 							break;
 						}
 					}
 				}
 			}
+			// sort the packages based on their position in require/require-dev
+			array_multisort( $packageIndex, \SORT_NUMERIC, \SORT_ASC, $packageData['packages'] );
 			// save the package data in the mu-plugins dir
 			file_put_contents( "$muPluginsDir/composer-wp-packages.json", json_encode( $packageData ) );
 		}
