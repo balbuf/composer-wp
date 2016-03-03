@@ -144,7 +144,7 @@ The full package name would be `wordpress-plugin/contact-form-7`.
 >For convenience in determining the proper package name for a plugin or theme, you can add the following
 >JavaScript snippet as a bookmarklet in your browser. If you are on the detail page for a plugin or theme on
 >[wordpress.org](https://wordpress.org/), [theme.wordpress.com](https://theme.wordpress.com/themes/sort/free/),
->or [vip.wordpress.com](https://vip.wordpress.com/plugins/), this bookmarklet will present you with 
+>or [vip.wordpress.com](https://vip.wordpress.com/plugins/), this bookmarklet will present you with
 >the package name using the default vendor name for that repo:
 >
 >```js
@@ -171,10 +171,10 @@ $ composer search contact form 7
 
 Where possible, Composer-WP uses full text searching to match against names and descriptions.
 
-You can use `composer show` to get more information about a package or simply verify that it exists:
+You can use `composer show -a` to get more information about a package or simply verify that it exists:
 
 ```
-$ composer show wordpress-plugin/contact-form-7
+$ composer show -a wordpress-plugin/contact-form-7
 ```
 
 If the package exists, composer will provide additional details such as available versions.
