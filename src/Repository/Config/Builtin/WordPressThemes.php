@@ -55,7 +55,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 			// if there is a version identifier, prepend with a period
 			$version = $version ? ".$version" : '';
 			// set the dist url
-			$package->setDistUrl( 'http://downloads.wordpress.org/theme/' . urlencode( $shortName . $version ) . '.zip' );
+			$package->setDistUrl( 'https://downloads.wordpress.org/theme/' . urlencode( $shortName . $version ) . '.zip' );
 
 			// set some additional meta info
 			// this is inconsequential to the solver, but it gets stored in composer.lock
