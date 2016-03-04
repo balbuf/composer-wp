@@ -291,7 +291,12 @@ the following:
 
 * **type** _(required)_
 
-  `wp-zip` or `wp-svn`
+  Defines the type of repository:
+
+  * `wp-zip` - this repository type allows you to scan a directory for plugin or theme zip files either locally or
+  remotely via SSH
+  * `wp-svn` - this repository type is used internally for the built-in repos and allows a public SVN repository
+  to act as a composer package repository
 
 * **package-types** _(required)_
 
@@ -310,8 +315,7 @@ the following:
 
 Properties specific to repo type:
 
-* **wp-zip** - This repository type allows you to scan a directory for plugin or theme zip files either locally or
-remotely via SSH.
+* **wp-zip**
 
   * **url** _(required)_
 
@@ -338,8 +342,6 @@ remotely via SSH.
 
     Maximum number of directories to traverse within the specified path. Default is `null` - no limit.
 
-* **wp-svn** - This repository type is used internally for the built-in repos and allows a public SVN repository
-to act as a composer package repository.
 
 #### Vendors
 
@@ -414,7 +416,10 @@ The built-in installer has the following properties:
   This option allows Composer-WP to automatically replace the `wp-content` directory that comes
   with the WordPress core files with a symlink to the directory set in `wp-content-path`. This
   allows the WordPress core files to be cleared and reinstalled as necessary without affecting
-  any other packages. Whenever WordPress core is updated, the symlink will be restored.
+  any other packages. Whenever WordPress core is updated, the symlink will be restored. Note
+  that the original `wp-content` directory included in the WordPress core release is deleted,
+  meaning if you wish to use the sample WordPress themes (e.g. "twentysixteen") or plugins,
+  you'll have to require them separately in `composer.json`.
 
 * **mu-plugin-autoloader** (_default:_ `true`)
 
