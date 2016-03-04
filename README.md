@@ -400,8 +400,10 @@ The built-in installer has the following properties:
 * **path-mapping**
 
   If you require more granular control of the WordPress package types, you can specify each type
-  separately here with a mapping to its install path. For example:
+  separately here with a mapping to its install path. If you make use of the `wordpress-path` and/or
+  `wp-content-path` properties, you likely will not need to use this option.
 
+  Example:
   ```json
   "path-mapping": {
     "wordpress-theme": "wp-content/themes/my-custom-themes"
