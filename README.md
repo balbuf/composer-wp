@@ -216,6 +216,226 @@ A simple `composer.json` file for a WordPress site might look like:
 
 Please refer to the official [composer documentation](https://getcomposer.org/doc/) for more information on general usage.
 
+### Additional Configuration
+
+Composer-WP has additional configuration options that can be specified in the `"composer-wp"` section
+of the [`"extra"` property](https://getcomposer.org/doc/04-schema.md#extra) of your `composer.json` file.
+The default settings are configured with a typical WordPress project in mind, so you may not need to
+alter these options for basic use.
+
+```json
+  "extra": {
+    "composer-wp": {
+      "repositories": [],
+      "vendors": {},
+      "installer": {}
+    }
+  }
+```
+
+#### Repositories
+
+The `"repositories"` property is an array of repository configurations that affect the built-in repos or
+define new custom repos.
+
+##### Built-In Repositories
+
+The most simple use for the repositories property is specifying built-in repos to either enable or disable:
+
+```json
+"repositories": [
+  {
+    "themes": false
+  },
+  {
+    "develop": true
+  }
+]
+```
+
+This configuration would disable the WordPress.org Themes Directory and enable the WordPress core development
+repository. The repositories are referenced by their repo names which can be found below.
+All built-in repos (except for the core development repository) are automatically loaded when
+packages that they handle are requested via `composer.json` or command line arguments, so generally, built-in
+repos do not need to be enabled here. However, you can use this to disable repos that you don't want to use
+(for instance to speed up certain commands such as `composer search`). If you wish to use the WordPress
+core development repo, you must explicitly enable it as shown above. Enabling or disabling built-in repos
+can also be combined into a single object:
+
+```json
+"repositories": [
+  {
+    "themes": false,
+    "develop": true
+  }
+]
+```
+
+##### Custom Repositories
+
+You can also define new repositories here:
+
+```json
+"repositories": [
+  {
+    "type": "wp-zip",
+    "url": "/private-plugins",
+    "ssh": "user@example.com",
+    "max-depth": 1
+  }
+]
+```
+
+Composer-WP supports two repository types: `wp-zip` and `wp-svn`. Each have their own properties, but share
+the following:
+
+* *type* _(required)_
+
+  `wp-zip` or `wp-svn`
+
+* *package-types* _(required)_
+
+  This is an object that defines which package types are supported and maps types to vendor names. For example:
+  ```json
+  "package-types": {
+    "wordpress-plugin": "wpackagist-plugin",
+    "wordpress-theme": "wpackagist-theme"
+  }
+  ```
+  This would allow a repo to handle packages that use wpackagist's vendor names.
+
+* *url* _(required)_
+
+  Depending on the repo type, this defines either a URL or a path.
+
+Properties specific to repo type:
+
+* *wp-zip* - This repository type allows you to scan a directory for plugin or theme zip files either locally or
+remotely via SSH.
+
+  * *url* _(required)_
+
+    The url property defines the directory path where the zip files reside. For SSH repos, this is _only_ the path,
+    not including the server's hostname.
+
+  * *ssh*
+
+    This property defines the SSH connection information (if applicable): `[user@]host`. The format is
+    exactly how it would be passed to `ssh`. Default is `null` - repo path is local.
+
+  * *package-types* _(required)_
+
+    Default:
+    ```json
+    "package-types": {
+      "wordpress-plugin": "wordpress-plugin",
+      "wordpress-muplugin": "wordpress-muplugin",
+      "wordpress-theme": "wordpress-theme"
+    }
+    ```
+
+  * *max-depth*
+
+    Maximum number of directories to traverse within the specified path. Default is `null` - no limit.
+
+* *wp-svn* - This repository type is used internally for the built-in repos and allows a public SVN repository
+to act as a composer package repository.
+
+#### Vendors
+
+The `"vendors"` property allows you to create vendor aliases and disable existing vendor names. This
+property is a simple object that maps a new vendor name to an existing name, or maps an existing
+vendor name to `false` to disable its use:
+
+```json
+"vendors": {
+  "wpackagist-plugin": "wordpress-plugin",
+  "wpcom-themes": "wordpress-com",
+  "wordpress-com": false
+}
+```
+
+The above would configuration would allow plugins to be required as if they came from wpackagist and
+would replace the default WordPress.com Themes repo vendor name of `wordpress-com` with `wpcom-themes`.
+Note that the original vendor name of `wordpress-com` will no longer be recognized, but both
+`wpackagist-plugin` and `wordpress-plugin` will be recognized.
+
+#### Installer
+
+The `"installer"` property allows you to configure the built-in installer. The installer is designed
+to play nicely with other custom installers you may be using. That is, if there are no other custom
+installers, Composer-WP will handle WordPress packages by default. However, if there is another
+custom installer (such as [composer-installers-extender](https://github.com/oomphinc/composer-installers-extender))
+that is configured to handle WordPress packages, Composer-WP will allow that installer to handle
+the packages unless explicitly instructed to do so (by specifying install paths).
+
+The built-in installer has the following properties:
+
+* *wordpress-path* (_default:_ `wp`)
+
+  This defines where you wish WordPress core files to be installed to, relative to the project root.
+  Note that when composer installs a package, it completely empties the target directory before
+  installing the new files. As such, the WordPress path should be designated for WordPress core files
+  only, as anything else (e.g. plugins, themes, and `wp-config.php`) will be wiped away on install or update.
+  It is recommended that you keep your `wp-config.php` file in the parent directory of the WordPress path
+  (WordPress can find it there automatically) and replace the `wp-content` directory with a symlink to
+  your real `wp-content` folder. (See the `symlink-wp-content` option below.)
+
+* *wp-content-path* (_default:_ `wp-content`)
+
+  This defines where themes, plugins, and mu-plugins will be installed to, relative to the project root.
+  The path will be treated like a standard `wp-content` folder, i.e. packages will be installed to the
+  `themes`, `plugins`, and `mu-plugins` subdirectories of this path. This must be specified to use the
+  `symlink-wp-content` option.
+
+* *wpmu-plugin-dir*
+
+  This allows you to specify a mu-plugins path different from the standard one placed within wp-content.
+  WordPress allows you to define a constant which alters the `mu-plugins` path, so this allows you to
+  install mu-plugin packages to your alternate path. If specified, this supersedes the `wp-content`-based
+  path that would be used otherwise.
+
+* *path-mapping*
+
+  If you require more granular control of the WordPress package types, you can specify each type
+  separately here with a mapping to its install path. For example:
+
+  ```json
+  "path-mapping": {
+    "wordpress-theme": "wp-content/themes/my-custom-themes"
+  }
+  ```
+
+  Note that `wordpress-muplugin` and `wordpress-core` types are superseded by `wpmu-plugin-dir`
+  and `wordpress-path` properties, respectively, if explicitly set.
+
+* *symlink-wp-content* (_default:_ `true`)
+
+  This option allows Composer-WP to automatically replace the `wp-content` directory that comes
+  with the WordPress core files with a symlink to the directory set in `wp-content-path`. This
+  allows the WordPress core files to be cleared and reinstalled as necessary without affecting
+  any other packages. Whenever WordPress core is updated, the symlink will be restored.
+
+* *mu-plugin-autoloader* (_default:_ `true`)
+
+  This option allows you to enable or disable the included mu-plugins autoloader. If enabled,
+  all regular plugins installed in the mu-plugins directory will be automatically loaded in
+  WordPress in the order that they are defined in `composer.json`. Additionally, the composer
+  autoloader will be loaded into WordPress. In order to use this option, either the
+  `wp-content-path` or `wpmu-plugin-dir` must be defined (default values are considered).
+
+* *dev-first* (_default:_ `false`)
+
+  This option determines if `require-dev` mu-plugins will be loaded first by the autoloader.
+  By default, the mu-plugins in `require` are loaded before any in `require-dev`.
+
+
+The installer can be disabled entirely by setting this property to false:
+
+```json
+"installer": false
+```
+
 ### Built-in WordPress Repositories
 
 Composer-WP has several built-in repositories that are automatically loaded when you request packages from them.
@@ -297,11 +517,3 @@ enabled to use as a dependency, as it shares a vendor namespace with the regular
 |**Versions**|Version releases as well as `dev-trunk`.|
 |**SVN Source**|[https://develop.svn.wordpress.org/](https://core.svn.wordpress.org/)|
 |**Caching**|This package listing is not cached by default to ensure updates are available immediately.|
-
-### Additional Configuration
-
-Composer-WP has additional configuration options that can be specified in the `"composer-wp"` section
-of the `"extra"` property of your `composer.json` file. Composer-WP is configured to operate with
-settings deemed typical for a WordPress project, so you may not need to alter these options.
-
-
