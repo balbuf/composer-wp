@@ -421,7 +421,9 @@ The built-in installer has the following properties:
   any other packages. Whenever WordPress core is updated, the symlink will be restored. Note
   that the original `wp-content` directory included in the WordPress core release is deleted,
   meaning if you wish to use the sample WordPress themes (e.g. "twentysixteen") or plugins,
-  you'll have to require them separately in `composer.json`.
+  you'll have to require them separately in `composer.json`. In order to use this option,
+  the `wordpress-path` _and_ `wp-content-path` properties must be defined (default values
+  are considered).
 
 * **mu-plugin-autoloader** (_default:_ `true`)
 
