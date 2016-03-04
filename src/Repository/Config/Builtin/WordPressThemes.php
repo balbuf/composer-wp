@@ -119,9 +119,6 @@ class WordPressThemes extends SVNRepositoryConfig {
 			}
 			// ask the API about this theme
 			$data = $this->queryAPI( 'theme_information', [ 'slug' => $theme ] );
-			if ( $this->io->isDebug() ) {
-				$this->io->write( "Theme data: \n" . print_r( $data, true ) );
-			}
 			$this->themeInfo[ $theme ] = $data;
 		}
 		return $this->themeInfo[ $theme ];

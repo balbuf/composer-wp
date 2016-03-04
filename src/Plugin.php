@@ -21,7 +21,7 @@
  * - possibility of mu-plugins dir being moved
  * - drop ins?
  * - consider plugin hooks: installed, activated, deactivated, etc.
- * - let installer-paths take precendence
+ * - option to disable normal plugin installation and updates?
  */
 
 namespace BalBuf\ComposerWP;
@@ -83,32 +83,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		$extra = $composer->getPackage()->getExtra();
 		// drill down to only our options
 		$this->extra = !empty( $extra[ self::extra_field ] ) ? $extra[ self::extra_field ] : [];
+		// set empty array as default to indicate we will use the installer with its defaults
 		$this->extra += [ self::installer_field => [] ];
-
-		// configure the custom installer, if enabled
-		if ( is_array( $installInfo = $this->extra[ self::installer_field ] ) ) {
-			// set the default install configuration
-			$installInfo += [
-				'wordpress-path' => 'wp',
-				'wp-content-path' => 'wp-content',
-				'path-mapping' => [],
-				'mu-plugin-autoloader' => true,
-				'symlink-wp-content' => true,
-				'dev-first' => false,
-			];
-			if ( $installInfo['wordpress-path'] ) {
-				$installInfo['path-mapping']['wordpress-core'] = $installInfo['wordpress-path'];
-			}
-			if ( $wpContent = $installInfo['wp-content-path'] ) {
-				$installInfo['path-mapping'] += [
-					'wordpress-plugin' => "$wpContent/plugins",
-					'wordpress-muplugin' => "$wpContent/mu-plugins",
-					'wordpress-theme' => "$wpContent/themes",
-				];
-			}
-			$this->installer = new WordPressInstaller( $io, $composer, $installInfo );
-			$composer->getInstallationManager()->addInstaller( $this->installer );
-		}
 
 		// let's reflect for a moment
 		// we need to access the InputInterface, which is a protected member of $io
@@ -275,6 +251,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			PluginEvents::PRE_FILE_DOWNLOAD => [
 				[ 'setRfs', 0 ],
 			],
+			PluginEvents::COMMAND => [
+				[ 'setupInstaller', 0 ],
+			],
 			ScriptEvents::POST_INSTALL_CMD => [
 				[ 'postInstall', 0 ],
 			],
@@ -299,6 +278,63 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	}
 
 	/**
+	 * Setup our custom installer, if enabled.
+	 * We run this as late as possible so our installer takes precedence. Our installer is
+	 * lazy and only handles packages if explicitly asked or no other custom installer exists
+	 * for our package types.
+	 */
+	public function setupInstaller() {
+		// make sure we only setup once
+		static $setup = false;
+		// if it isn't an array, it means the installer is disabled
+		if ( $setup || !is_array( $installInfo = $this->extra[ self::installer_field ] ) ) {
+			return;
+		}
+		// set the default install configuration
+		$installInfo += [
+			'wordpress-path' => false,
+			'wp-content-path' => false,
+			// set to specify a different dir
+			'wpmu-plugin-dir' => false,
+			// {type} => {install path} (package slug will be appended)
+			'path-mapping' => [],
+			// replace the wp-content folder in the wordpress path with a symlink to the composer wp-content dir?
+			'symlink-wp-content' => true,
+			// add an autoloader to the mu-plugins dir?
+			'mu-plugin-autoloader' => true,
+			// put the require-dev packages first in the autoloader order?
+			'dev-first' => false,
+		];
+		// add a mapping for core if wordpress path is set
+		if ( $installInfo['wordpress-path'] ) {
+			$installInfo['path-mapping']['wordpress-core'] = $installInfo['wordpress-path'];
+		} else {
+			// default wordpress core install path
+			$installInfo['wordpress-path'] = 'wp';
+		}
+		// add mappings for plugins and themes if wp content path is set
+		if ( $wpContent = $installInfo['wp-content-path'] ) {
+			$installInfo['path-mapping'] += [
+				'wordpress-plugin' => "$wpContent/plugins",
+				'wordpress-muplugin' => "$wpContent/mu-plugins",
+				'wordpress-theme' => "$wpContent/themes",
+			];
+		} else {
+			// set the default wp-content path for mapping and symlinking
+			$installInfo['wp-content-path'] = 'wp-content';
+		}
+		// wpmu-plugin-dir supersedes the default wp-content based path
+		if ( $installInfo['wpmu-plugin-dir'] ) {
+			$installInfo['path-mapping']['wordpress-muplugin'] = $installInfo['wpmu-plugin-dir'];
+		} else if ( !empty( $installInfo['wp-content-path'] ) ) {
+			$installInfo['wpmu-plugin-dir'] = $installInfo['wp-content-path'] . '/mu-plugins';
+		}
+		$this->installer = new WordPressInstaller( $this->io, $this->composer, $installInfo );
+		$this->composer->getInstallationManager()->addInstaller( $this->installer );
+		$setup = true;
+	}
+
+	/**
 	 * Take some additional actions after we have installed or updated packages.
 	 */
 	public function postInstall( Event $event ) {
@@ -308,24 +344,19 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 		}
 		$installInfo = $installer->getInstallInfo();
 		$filesystem = $installer->getFilesystem();
-		// bail if wp-content handling is disabled
-		if ( !$installInfo['wp-content-path'] ) {
-			return;
-		}
 		// replace the wp-content dir in wp with a symlink to the real wp-content folder
-		if ( $installInfo['symlink-wp-content'] && $installInfo['wordpress-path'] ) {
+		if ( $installInfo['symlink-wp-content'] && $installInfo['wp-content-path'] && $installInfo['wordpress-path'] ) {
 			$dir = getcwd() . '/' . $installInfo['wordpress-path'] . '/wp-content';
-			// only do this if the directory exists and is not a symlink
-			if ( is_dir( $dir ) && !is_link( $dir ) ) {
+			// only do this if the directory exists and is not a symlink, and the wp-content dir exists
+			if ( is_dir( $dir ) && !is_link( $dir ) && is_dir( $installInfo['wp-content-path'] ) ) {
 				$dir = realpath( $dir );
 				$filesystem->removeDirectory( $dir );
 				$filesystem->relativeSymlink( realpath( $installInfo['wp-content-path'] ), $dir );
 			}
 		}
 		// add the mu-plugins autoloader
-		if ( $installInfo['mu-plugin-autoloader'] ) {
-			// @todo - what about if the path was changed via defining WPMU_PLUGIN_DIR?
-			$muPluginsDir = realpath( $installInfo['wp-content-path'] . '/mu-plugins' );
+		if ( $installInfo['mu-plugin-autoloader'] && $installInfo['wpmu-plugin-dir'] && is_dir( $installInfo['wpmu-plugin-dir'] ) ) {
+			$muPluginsDir = realpath( $installInfo['wpmu-plugin-dir'] );
 			// @todo - only copy this if it has changed?
 			copy( __DIR__ . '/Installer/composer-wp-autoloader.php', "$muPluginsDir/composer-wp-autoloader.php" );
 			// data which will be provided to the autoloader
@@ -362,6 +393,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 				if ( $package->getType() === 'wordpress-muplugin' ) {
 					list(, $slug ) = explode( '/', $package->getPrettyName() );
 					// try to identify the actual plugin file
+					// @todo: can we find the install path based on the package??
 					foreach( glob( "$muPluginsDir/$slug/*.php", \GLOB_NOSORT ) as $file ) {
 						// use the same max byte length that WP does
 						$header = file_get_contents( $file, false, null, 0, 8192 );

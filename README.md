@@ -29,11 +29,9 @@ and the listing is always up-to-date.
 
 Additionally, virtual packages enable the package properties to be dynamic. This allows you to change the
 package type simply by adjusting the vendor name, for instance. Each vendor name maps to a package type,
-and the package type allows a [custom installer](https://getcomposer.org/doc/articles/custom-installers.md)
-to install the package into a specific directory (see: [composer-installers](https://github.com/composer/installers)
-and [composer-installers-extender](https://github.com/oomphinc/composer-installers-extender)).
-For example, you can install a plugin as either "regular" or "must use" (`wordpress-plugin` or
-`wordpress-muplugin`, respectively) just by using the appropriate vendor name.
+and the package type dictates where the package will be installed. For example, you can install a
+plugin as either "regular" or "must use" (`wordpress-plugin` or `wordpress-muplugin`, respectively)
+just by using the appropriate vendor name.
 
 In addition to the official public WordPress repos, Composer-WP allows you to define your own plugin or theme repos
 that contain zipped packages. This type of repo can either reference a local directory or a remote directory
@@ -65,6 +63,14 @@ the vendor name (e.g. `wordpress-plugin/my-plugin` or `wordpress-muplugin/my-plu
 conflicts with vendors from other repositories, each virtual vendor name can be aliased or disabled entirely
 via the `extra` property of your `composer.json` file.
 
+#### Load packages automatically with the included mu-plugins autoloader
+Any regular plugins installed as "must use" plugins will be automatically loaded in WordPress if the
+mu-plugins autoloader is enabled (the default setting). These "must use" plugins will be loaded
+in the order they appear in your `composer.json`, which allows you to explicitly specify a loading
+precedence in case certain plugins depend on others. The mu-plugins autoloader will also pull in
+composer's own autoloader, allowing you to easily make use of any non-WordPress packages within your
+WordPress project. The mu-plugin autoloader is inspired by and based upon the [Bedrock autoloader](https://roots.io/).
+
 #### Full text searching on package name and description
 For WordPress repositories that have an accompanying API
 ([WordPress.org Plugins and Themes](http://codex.wordpress.org/WordPress.org_API) and
@@ -74,6 +80,14 @@ to match packages based on their name, slug (composer package name), or descript
 in the same way that you would search these directories directly. For other WordPress repositories,
 packages are matched by slug or vendor name. Private zip repositories support full text searching
 based on the name, slug, and description pulled from the plugin or theme header information.
+
+#### Built-in custom installer which helps you place packages where you need them
+Composer supports [custom installers](https://getcomposer.org/doc/articles/custom-installers.md)
+that allow you to control where packages are installed to, e.g. plugins and themes go into your
+`wp-content` directory. For example, the [composer-installers](https://github.com/composer/installers)
+plugin is widely used and handles WordPress themes and plugins (but not core files). An additional
+installer plugin is not required as the Composer-WP installer handles all WordPress package types
+and is specifically catered towards WordPress projects.
 
 #### Access to plugins and themes no longer listed in the WordPress directories
 Packages that are no longer available in the public directories are usually still available from
@@ -283,3 +297,11 @@ enabled to use as a dependency, as it shares a vendor namespace with the regular
 |**Versions**|Version releases as well as `dev-trunk`.|
 |**SVN Source**|[https://develop.svn.wordpress.org/](https://core.svn.wordpress.org/)|
 |**Caching**|This package listing is not cached by default to ensure updates are available immediately.|
+
+### Additional Configuration
+
+Composer-WP has additional configuration options that can be specified in the `"composer-wp"` section
+of the `"extra"` property of your `composer.json` file. Composer-WP is configured to operate with
+settings deemed typical for a WordPress project, so you may not need to alter these options.
+
+

@@ -113,9 +113,6 @@ class WordPressPlugins extends SVNRepositoryConfig {
 				if ( json_last_error() !== \JSON_ERROR_NONE ) {
 					throw new RuntimeException( 'JSON error occured: ' . json_last_error_msg() );
 				}
-				if ( $this->io->isDebug() ) {
-					$this->io->write( "Plugin data: \n" . print_r( $data, true ) );
-				}
 				$this->pluginInfo[ $plugin ] = $data;
 			}
 		}
