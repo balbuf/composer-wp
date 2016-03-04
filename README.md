@@ -289,11 +289,11 @@ You can also define new repositories here:
 Composer-WP supports two repository types: `wp-zip` and `wp-svn`. Each have their own properties, but share
 the following:
 
-* *type* _(required)_
+* **type** _(required)_
 
   `wp-zip` or `wp-svn`
 
-* *package-types* _(required)_
+* **package-types** _(required)_
 
   This is an object that defines which package types are supported and maps types to vendor names. For example:
   ```json
@@ -304,26 +304,26 @@ the following:
   ```
   This would allow a repo to handle packages that use wpackagist's vendor names.
 
-* *url* _(required)_
+* **url** _(required)_
 
   Depending on the repo type, this defines either a URL or a path.
 
 Properties specific to repo type:
 
-* *wp-zip* - This repository type allows you to scan a directory for plugin or theme zip files either locally or
+* **wp-zip** - This repository type allows you to scan a directory for plugin or theme zip files either locally or
 remotely via SSH.
 
-  * *url* _(required)_
+  * **url** _(required)_
 
     The url property defines the directory path where the zip files reside. For SSH repos, this is _only_ the path,
     not including the server's hostname.
 
-  * *ssh*
+  * **ssh**
 
     This property defines the SSH connection information (if applicable): `[user@]host`. The format is
     exactly how it would be passed to `ssh`. Default is `null` - repo path is local.
 
-  * *package-types* _(required)_
+  * **package-types** _(required)_
 
     Default:
     ```json
@@ -334,11 +334,11 @@ remotely via SSH.
     }
     ```
 
-  * *max-depth*
+  * **max-depth**
 
     Maximum number of directories to traverse within the specified path. Default is `null` - no limit.
 
-* *wp-svn* - This repository type is used internally for the built-in repos and allows a public SVN repository
+* **wp-svn** - This repository type is used internally for the built-in repos and allows a public SVN repository
 to act as a composer package repository.
 
 #### Vendors
@@ -371,7 +371,7 @@ the packages unless explicitly instructed to do so (by specifying install paths)
 
 The built-in installer has the following properties:
 
-* *wordpress-path* (_default:_ `wp`)
+* **wordpress-path** (_default:_ `wp`)
 
   This defines where you wish WordPress core files to be installed to, relative to the project root.
   Note that when composer installs a package, it completely empties the target directory before
@@ -381,21 +381,21 @@ The built-in installer has the following properties:
   (WordPress can find it there automatically) and replace the `wp-content` directory with a symlink to
   your real `wp-content` folder. (See the `symlink-wp-content` option below.)
 
-* *wp-content-path* (_default:_ `wp-content`)
+* **wp-content-path** (_default:_ `wp-content`)
 
   This defines where themes, plugins, and mu-plugins will be installed to, relative to the project root.
   The path will be treated like a standard `wp-content` folder, i.e. packages will be installed to the
   `themes`, `plugins`, and `mu-plugins` subdirectories of this path. This must be specified to use the
   `symlink-wp-content` option.
 
-* *wpmu-plugin-dir*
+* **wpmu-plugin-dir**
 
   This allows you to specify a mu-plugins path different from the standard one placed within wp-content.
   WordPress allows you to define a constant which alters the `mu-plugins` path, so this allows you to
   install mu-plugin packages to your alternate path. If specified, this supersedes the `wp-content`-based
   path that would be used otherwise.
 
-* *path-mapping*
+* **path-mapping**
 
   If you require more granular control of the WordPress package types, you can specify each type
   separately here with a mapping to its install path. For example:
@@ -409,14 +409,14 @@ The built-in installer has the following properties:
   Note that `wordpress-muplugin` and `wordpress-core` types are superseded by `wpmu-plugin-dir`
   and `wordpress-path` properties, respectively, if explicitly set.
 
-* *symlink-wp-content* (_default:_ `true`)
+* **symlink-wp-content** (_default:_ `true`)
 
   This option allows Composer-WP to automatically replace the `wp-content` directory that comes
   with the WordPress core files with a symlink to the directory set in `wp-content-path`. This
   allows the WordPress core files to be cleared and reinstalled as necessary without affecting
   any other packages. Whenever WordPress core is updated, the symlink will be restored.
 
-* *mu-plugin-autoloader* (_default:_ `true`)
+* **mu-plugin-autoloader** (_default:_ `true`)
 
   This option allows you to enable or disable the included mu-plugins autoloader. If enabled,
   all regular plugins installed in the mu-plugins directory will be automatically loaded in
@@ -424,7 +424,7 @@ The built-in installer has the following properties:
   autoloader will be loaded into WordPress. In order to use this option, either the
   `wp-content-path` or `wpmu-plugin-dir` must be defined (default values are considered).
 
-* *dev-first* (_default:_ `false`)
+* **dev-first** (_default:_ `false`)
 
   This option determines if `require-dev` mu-plugins will be loaded first by the autoloader.
   By default, the mu-plugins in `require` are loaded before any in `require-dev`.
