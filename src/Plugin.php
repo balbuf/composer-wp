@@ -22,6 +22,7 @@
  * - drop ins?
  * - consider plugin hooks: installed, activated, deactivated, etc.
  * - option to disable normal plugin installation and updates?
+ * - figure out installers precedence to trump composer-installers
  */
 
 namespace BalBuf\ComposerWP;

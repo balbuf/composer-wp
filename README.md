@@ -122,6 +122,12 @@ parsable by composer. If all else fails, the package is still provided as a gene
 
 ## Documentation
 
+### Requirements
+
+* [composer](https://getcomposer.org/), of course
+* PHP 5.4+ (not yet tested with PHP 7)
+* `wp-zip` repo type requires a Unix-based OS, though other basic functionality _should_ work on Windows
+
 ### Basic Usage
 
 First, make sure Composer-WP is installed globally:
