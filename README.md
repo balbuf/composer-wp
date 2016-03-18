@@ -439,6 +439,15 @@ The built-in installer has the following properties:
   autoloader will be loaded into WordPress. In order to use this option, either the
   `wp-content-path` or `wpmu-plugin-dir` must be defined (default values are considered).
 
+* **autoloader-path**
+
+  This option allows you to specify an explicit path to your composer autoloader file that will
+  be included by the mu-plugin autoloader. If not specified, the value will be a relative path
+  from either the WordPress root or the mu-plugins folder to your vendor folder, with `autoload.php`
+  appended. You can also override this setting with the `COMPOSER_AUTOLOADER` constant within your
+  WordPress install. The constant, if defined, will take precedence. You can set the value of this
+  constant to false to not include any composer autoloader.
+
 * **dev-first** (_default:_ `false`)
 
   This option determines if `require-dev` mu-plugins will be loaded first by the autoloader.
