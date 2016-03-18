@@ -18,11 +18,13 @@
  * - look into whether the 'replaces' packages are generating extraneous calls to the SVN repo
  * - add a check to see if there is a new version of the plugin available and provide notice if so
  * - envato repo type
- * - possibility of mu-plugins dir being moved
  * - drop ins?
  * - consider plugin hooks: installed, activated, deactivated, etc.
  * - option to disable normal plugin installation and updates?
  * - figure out installers precedence to trump composer-installers
+ * - be able to tell the installer to ignore a specific type by setting it to false in the path mapping
+ * - why does wordpress keep downloading every time?
+ * - add retries for the package listing! and increase timeout limit
  */
 
 namespace BalBuf\ComposerWP;
@@ -363,8 +365,10 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			// data which will be provided to the autoloader
 			$packageData = [ 'packages' => [] ];
 			$vendorDir = realpath( $this->composer->getConfig()->get( 'vendor-dir' ) );
+			if ( !empty( $installInfo['autoloader-path'] ) ) {
+				$packageData['autoloader']['path'] = $installInfo['autoloader-path'];
 			// make the composer autoloader reference relative to the WP core dir, if we have it
-			if ( $installInfo['wordpress-path'] && is_dir( $installInfo['wordpress-path'] ) ) {
+			} else if ( $installInfo['wordpress-path'] && is_dir( $installInfo['wordpress-path'] ) ) {
 				$packageData['autoloader'] = [
 					'path' => $filesystem->findShortestPath( realpath( $installInfo['wordpress-path'] ), $vendorDir, true ),
 					'relativeTo' => 'ABSPATH',

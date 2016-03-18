@@ -33,16 +33,18 @@ class MUPluginsAutoloader {
 			return;
 		}
 		// include the composer autoload file
-		if ( !empty( $this->packageData['autoloader']['path'] ) ) {
+		if ( defined( 'COMPOSER_AUTOLOADER' ) ) {
+			$autoloadPath = \COMPOSER_AUTOLOADER;
+		} else if ( !empty( $this->packageData['autoloader']['path'] ) ) {
 			$autoloadPath = $this->packageData['autoloader']['path'];
 			if ( !empty( $this->packageData['autoloader']['relativeTo'] ) ) {
 				if ( defined( $this->packageData['autoloader']['relativeTo'] ) ) {
 					$autoloadPath = constant( $this->packageData['autoloader']['relativeTo'] ) . "/$autoloadPath";
 				}
 			}
-			if ( is_readable( $autoloadPath ) ) {
-				include_once( $autoloadPath );
-			}
+		}
+		if ( !empty( $autoloadPath ) && is_readable( $autoloadPath ) ) {
+			include_once( $autoloadPath );
 		}
 		$this->loadPlugins();
 		add_filter( 'show_advanced_plugins', [ $this, 'pluginsListTable' ], 0, 2 );
