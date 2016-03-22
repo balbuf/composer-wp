@@ -157,7 +157,8 @@ class ZipRepository extends ArrayRepository implements ConfigurableRepositoryInt
 						// use the basename of the file where the plugin headers were as the name
 						// this is a wordpress convention, but may not always be accurate
 						// @todo: what do we do about that?
-						$name = Util::callFilter( $this->repoConfig['name-filter'], basename( $fileName, '.php' ), $url, $fileName, $headers );
+						$name = Util::slugify( $headers['plugin name'] );
+						$name = Util::callFilter( $this->repoConfig['name-filter'], $name, $url, $fileName, $headers );
 						if ( !empty( $headers['plugin uri'] ) ) {
 							$package['homepage'] = $headers['plugin uri'];
 						}

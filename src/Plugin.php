@@ -25,6 +25,9 @@
  * - be able to tell the installer to ignore a specific type by setting it to false in the path mapping
  * - why does wordpress keep downloading every time?
  * - add retries for the package listing! and increase timeout limit
+ * - should be some way to force non-composer-wp packages to be mu-plugins
+ * - troubleshoot why '~' doesn't work for wp-zip repos
+ * - allow you to list all of the packages from a specific repo
  */
 
 namespace BalBuf\ComposerWP;
