@@ -3,7 +3,7 @@
  * Plugin Name: Composer-WP Autoloader
  * Plugin URI: https://github.com/balbuf/composer-wp/
  * Description: Enables standard plugins managed by composer to be autoloaded as must-use plugins. These plugins are included during mu-plugin loading. An asterisk (*) next to the name of the plugin designates the plugins that have been autoloaded. <em>Adapted from the <a href="https://roots.io/">Bedrock autoloader</a>.</em>
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: balbuf
  * Author URI: https://github.com/balbuf
  * License: MIT License
@@ -46,6 +46,7 @@ class MUPluginsAutoloader {
 		if ( !empty( $autoloadPath ) && is_readable( $autoloadPath ) ) {
 			include_once( $autoloadPath );
 		}
+		add_filter( 'plugins_url', [ $this, 'fixPluginsUrl' ], 0, 3 );
 		$this->loadPlugins();
 		add_filter( 'show_advanced_plugins', [ $this, 'pluginsListTable' ], 0, 2 );
 	}
@@ -113,6 +114,27 @@ class MUPluginsAutoloader {
 			}
 		}
 		return "$pluginsPath/" . str_repeat( '../', count( $from ) - $i ) . implode( '/', array_slice( $to, $i ) );
+	}
+
+	/**
+	 * Fix the URL for plugins that are not in the standard plugin dir.
+	 *
+	 * Some plugin authors make the reasonable (but inaccurate) assumption that their
+	 * plugin files reside within the plugins directory, so they use plugins_url()
+	 * by just passing the directory name of their main plugin file.
+	 *
+	 * @filter plugins_url
+	 */
+	function fixPluginsUrl( $url, $path, $plugin ) {
+		// only concerned with instances where a plugin file path is not provided
+		if ( empty( $plugin ) ) {
+			$path = ltrim( $path, '/' );
+			// if this path doesn't exist within plugins, but it does within mu-plugins, then swap it
+			if ( !empty( $path ) && !file_exists( WP_PLUGIN_DIR . "/$path" ) && file_exists( WPMU_PLUGIN_DIR . "/$path" ) ) {
+				$url = set_url_scheme( WPMU_PLUGIN_URL ) . "/$path";
+			}
+		}
+		return $url;
 	}
 
 }
