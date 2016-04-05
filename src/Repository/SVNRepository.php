@@ -137,7 +137,7 @@ class SVNRepository extends ComposerRepository {
 
 	//protected function configurePackageWithVendorTransportOptions(); //@TODO come back to this
 
-	public function whatProvides( Pool $pool, $name, $byPassFilters = false ) {
+	public function whatProvides( Pool $pool, $name, $bypassFilters = false ) {
 		// split on vendor and name
 		if ( count( $parts = explode( '/', $name ) ) !== 2 ) {
 			return [];
