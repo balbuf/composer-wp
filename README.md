@@ -19,6 +19,19 @@ composer global require balbuf/composer-wp
 composer install
 ```
 
+Alternatively, you can include this step as a script that composer will execute before installing or updating
+packages:
+
+```json
+  "scripts": {
+      "pre-cmd": [
+          "composer global require balbuf/composer-wp"
+      ],
+      "pre-install-cmd": "@pre-cmd",
+      "pre-update-cmd": "@pre-cmd"
+  }
+```
+
 ## About
 
 Similar to [wpackagist](http://wpackagist.org/), Composer-WP leverages the official WordPress SVN repositories
@@ -429,7 +442,8 @@ The built-in installer has the following properties:
   meaning if you wish to use the sample WordPress themes (e.g. "twentysixteen") or plugins,
   you'll have to require them separately in `composer.json`. In order to use this option,
   the `wordpress-path` _and_ `wp-content-path` properties must be defined (default values
-  are considered).
+  are considered) and said paths must exist (e.g. there are packages that are installed to these
+  paths).
 
 * **mu-plugin-autoloader** (_default:_ `true`)
 
@@ -437,7 +451,8 @@ The built-in installer has the following properties:
   all regular plugins installed in the mu-plugins directory will be automatically loaded in
   WordPress in the order that they are defined in `composer.json`. Additionally, the composer
   autoloader will be loaded into WordPress. In order to use this option, either the
-  `wp-content-path` or `wpmu-plugin-dir` must be defined (default values are considered).
+  `wp-content-path` or `wpmu-plugin-dir` must be defined (default values are considered)
+  and must exist.
 
 * **autoloader-path**
 
