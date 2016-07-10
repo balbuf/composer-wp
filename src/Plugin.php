@@ -5,10 +5,7 @@
  * - for search commands that use APIs, also search on package name
  * - global config for vendor aliases / repos / etc?
  * - alternatively use ZipArchive for local handling
- * - how are the non-ascii package names handled?
  * - github repo type: provide one or more URLs to github repos or users/orgs; those repos will be scanned for themes and plugins
- * - custom installer and mu-plugin autoloader
- * - git alternative for core and develop
  * - add unit tests
  * - create a script to scan the headers of every plugin to identify anomolies
  * - caching for SSH zip repos
@@ -21,8 +18,6 @@
  * - drop ins?
  * - consider plugin hooks: installed, activated, deactivated, etc.
  * - option to disable normal plugin installation and updates?
- * - figure out installers precedence to trump composer-installers
- * - be able to tell the installer to ignore a specific type by setting it to false in the path mapping
  * - why does wordpress keep downloading every time?
  * - add retries for the package listing! and increase timeout limit
  * - should be some way to force non-composer-wp packages to be mu-plugins
@@ -36,6 +31,7 @@ use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use BalBuf\ComposerWP\Installer\WordPressInstaller;
+use BalBuf\ComposerWP\Installer\InstallationManager;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Config;
 use BalBuf\ComposerWP\Repository\Config\RepositoryConfigInterface;
@@ -209,6 +205,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			$rm->addRepository( $repo = $rm->createRepository( $repoConfig->getRepositoryType(), $repoConfig ) );
 			$repoConfig->setRepo( $repo );
 		}
+		// set up InstallationManager and installer
+		$this->setupInstaller();
 	}
 
 	/**
@@ -257,9 +255,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 			PluginEvents::PRE_FILE_DOWNLOAD => [
 				[ 'setRfs', 0 ],
 			],
-			PluginEvents::COMMAND => [
-				[ 'setupInstaller', 0 ],
-			],
 			ScriptEvents::POST_INSTALL_CMD => [
 				[ 'postInstall', 0 ],
 			],
@@ -284,60 +279,29 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 	}
 
 	/**
-	 * Setup our custom installer, if enabled.
-	 * We run this as late as possible so our installer takes precedence. Our installer is
+	 * Setup our custom installer, if enabled. Also swap the default installation manager with
+	 * our own, so we can be more strategic about which packages we handle. Our installer is
 	 * lazy and only handles packages if explicitly asked or no other custom installer exists
 	 * for our package types.
 	 */
 	public function setupInstaller() {
-		// make sure we only setup once
-		static $setup = false;
 		// if it isn't an array, it means the installer is disabled
-		if ( $setup || !is_array( $installInfo = $this->extra[ self::installer_field ] ) ) {
+		if ( !is_array( $installInfo = $this->extra[ self::installer_field ] ) ) {
 			return;
 		}
-		// set the default install configuration
-		$installInfo += [
-			'wordpress-path' => false,
-			'wp-content-path' => false,
-			// set to specify a different dir
-			'wpmu-plugin-dir' => false,
-			// {type} => {install path} (package slug will be appended)
-			'path-mapping' => [],
-			// replace the wp-content folder in the wordpress path with a symlink to the composer wp-content dir?
-			'symlink-wp-content' => true,
-			// add an autoloader to the mu-plugins dir?
-			'mu-plugin-autoloader' => true,
-			// put the require-dev packages first in the autoloader order?
-			'dev-first' => false,
-		];
-		// add a mapping for core if wordpress path is set
-		if ( $installInfo['wordpress-path'] ) {
-			$installInfo['path-mapping']['wordpress-core'] = $installInfo['wordpress-path'];
-		} else {
-			// default wordpress core install path
-			$installInfo['wordpress-path'] = 'wp';
-		}
-		// add mappings for plugins and themes if wp content path is set
-		if ( $wpContent = $installInfo['wp-content-path'] ) {
-			$installInfo['path-mapping'] += [
-				'wordpress-plugin' => "$wpContent/plugins",
-				'wordpress-muplugin' => "$wpContent/mu-plugins",
-				'wordpress-theme' => "$wpContent/themes",
-			];
-		} else {
-			// set the default wp-content path for mapping and symlinking
-			$installInfo['wp-content-path'] = 'wp-content';
-		}
-		// wpmu-plugin-dir supersedes the default wp-content based path
-		if ( $installInfo['wpmu-plugin-dir'] ) {
-			$installInfo['path-mapping']['wordpress-muplugin'] = $installInfo['wpmu-plugin-dir'];
-		} else if ( !empty( $installInfo['wp-content-path'] ) ) {
-			$installInfo['wpmu-plugin-dir'] = $installInfo['wp-content-path'] . '/mu-plugins';
-		}
+		// create a new installer
 		$this->installer = new WordPressInstaller( $this->io, $this->composer, $installInfo );
-		$this->composer->getInstallationManager()->addInstaller( $this->installer );
-		$setup = true;
+		// create our own InstallationManager instance
+		$manager = new InstallationManager( $this->installer, $this->io );
+		$manager->originalManager = $this->composer->getInstallationManager();
+		// use reflection to get any existing installers
+		$installers = new \ReflectionProperty( $manager->originalManager, 'installers' );
+		$installers->setAccessible( true );
+		// add existing installers to the new manager - reverse bc installers are unshifted
+		foreach ( array_reverse( $installers->getValue( $manager->originalManager ) ) as $installer ) {
+			$manager->addInstaller( $installer );
+		}
+		$this->composer->setInstallationManager( $manager );
 	}
 
 	/**
