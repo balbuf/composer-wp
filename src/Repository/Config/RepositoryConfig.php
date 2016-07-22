@@ -12,7 +12,7 @@ use Composer\Plugin\PluginInterface;
 use Composer\Repository\RepositoryInterface;
 
 
-class RepositoryConfig implements RepositoryConfigInterface {
+class RepositoryConfig implements RepositoryConfigInterface, \ArrayAccess {
 
 	const repoType = null;
 	protected $config;
@@ -133,6 +133,34 @@ class RepositoryConfig implements RepositoryConfigInterface {
 	 */
 	function getRepo() {
 		return $this->repo;
+	}
+
+	/**
+	 * @see ArrayAccess
+	 */
+	function offsetExists( $offset ) {
+		return isset( $this->config[ $offset ] );
+	}
+
+	/**
+	 * @see ArrayAccess
+	 */
+	function offsetGet( $offset ) {
+		return $this->get( $offset );
+	}
+
+	/**
+	 * @see ArrayAccess
+	 */
+	function offsetSet( $offset, $value ) {
+		return $this->set( $offset, $value );
+	}
+
+	/**
+	 * @see ArrayAccess
+	 */
+	function offsetUnset( $offset ) {
+		unset( $this->config[ $offset ] );
 	}
 
 }
