@@ -16,6 +16,7 @@ As such, it is a good idea to include this as a build step for your project:
 
 ```sh
 composer global require balbuf/composer-wp
+composer global update balbuf/composer-wp
 composer install
 ```
 
@@ -25,7 +26,7 @@ packages:
 ```json
   "scripts": {
       "pre-cmd": [
-          "composer global require balbuf/composer-wp"
+          "composer global require balbuf/composer-wp && composer global update balbuf/composer-wp"
       ],
       "pre-install-cmd": "@pre-cmd",
       "pre-update-cmd": "@pre-cmd"
