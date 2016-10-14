@@ -67,7 +67,7 @@ class SVNRepository extends ComposerRepository {
 		$this->vendors = $repoConfig->get( 'vendors' );
 		$this->defaultVendor = key( $this->vendors );
 
-		// set the SvnUtil for all instantiated classes to use
+		// create an SvnUtil to execute commands
 		$this->SvnUtil = new SvnUtil( $io, $repoConfig->get( 'trust-cert' ) );
 	}
 
