@@ -28,6 +28,7 @@ class WordPressComThemes extends SVNRepositoryConfig {
 			'cache-handler' => [ $this, 'cache' ],
 			// cache for one week - these rarely change
 			'cache-ttl' => 604800,
+			'trust-cert' => true,
 		];
 		parent::__construct();
 	}

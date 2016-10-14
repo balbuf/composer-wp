@@ -28,6 +28,7 @@ class WordPressThemes extends SVNRepositoryConfig {
 			'cache-handler' => [ $this, 'cache' ],
 			// store the cache for however long the default is - it will likely get invalidated before then
 			'cache-ttl' => 'config',
+			'trust-cert' => true,
 		];
 		parent::__construct();
 	}

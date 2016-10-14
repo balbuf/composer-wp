@@ -28,7 +28,7 @@ use Composer\Semver\Constraint\Constraint;
  */
 class SVNRepository extends ComposerRepository {
 
-	static protected $SvnUtil;
+	protected $svnUtil;
 	protected $providerHash; // map {provider name} => {provider url}
 	protected $distUrl;
 	protected $plugin; //the plugin class that instantiated this repository
@@ -67,10 +67,8 @@ class SVNRepository extends ComposerRepository {
 		$this->vendors = $repoConfig->get( 'vendors' );
 		$this->defaultVendor = key( $this->vendors );
 
-		// set the SvnUtil for all instantiated classes to use
-		if ( !isset( self::$SvnUtil ) ) {
-			self::$SvnUtil = new SvnUtil( $io );
-		}
+		// create an SvnUtil to execute commands
+		$this->svnUtil = new SvnUtil( $io, $repoConfig->get( 'trust-cert' ) );
 	}
 
 	public function findPackage( $name, $constraint ) {
@@ -179,7 +177,7 @@ class SVNRepository extends ComposerRepository {
 					if ( $this->io->isVerbose() ) {
 						$this->io->writeError( "Fetching available versions for $name" );
 					}
-					$pkgRaw = self::$SvnUtil->execute( 'ls', "$providerUrl/$relPath" );
+					$pkgRaw = $this->svnUtil->execute( 'ls', "$providerUrl/$relPath" );
 				} catch( \RuntimeException $e ) {
 					// @todo maybe don't throw an exception and just pass this one up?
 					throw new \RuntimeException( "SVN Error: Could not retrieve package listing for $name. " . $e->getMessage() );
@@ -314,7 +312,7 @@ class SVNRepository extends ComposerRepository {
 				if ( substr( $path, -1 ) === '/' ) {
 					// try to get a listing of providers
 					try {
-						$providersRaw = self::$SvnUtil->execute( 'ls', $url );
+						$providersRaw = $this->svnUtil->execute( 'ls', $url );
 					} catch( \RuntimeException $e ) {
 						throw new \RuntimeException( "SVN Error: Could not retrieve provider listing from $url " . $e->getMessage() );
 					}

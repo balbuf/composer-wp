@@ -18,6 +18,7 @@ class WordPressCore extends SVNRepositoryConfig {
 		'package-types' => [ 'wordpress-core' => [ 'wordpress', 'wordpress-core' ] ],
 		'name-filter' => [ __CLASS__, 'filterProvider' ],
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
+		'trust-cert' => true,
 	];
 
 	/**

@@ -18,6 +18,7 @@ class WordPressDevelop extends SVNRepositoryConfig {
 		'package-types' => [ 'wordpress-develop' => [ 'wordpress', 'wordpress-core' ] ],
 		'name-filter' => [ __CLASS__, 'filterProvider' ],
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
+		'trust-cert' => true,
 	];
 
 	/**
