@@ -13,9 +13,27 @@ use Composer\Config;
 class Svn {
 
 	protected $util;
+	protected $trustCert;
 
-	function __construct( IOInterface $io ) {
+	function __construct( IOInterface $io, $trustCert = false ) {
 		$this->util = new SvnUtil( '', $io, new Config );
+		$this->setCertTrusted( $trustCert );
+	}
+
+	/**
+	 * Set whether we will trust the the SSL certificate automatically.
+	 * @param bool $bool yas/nah
+	 */
+	function setCertTrusted( $bool ) {
+		$this->trustCert = (bool) $bool;
+	}
+
+	/**
+	 * Are we automatically trusting the cert?
+	 * @return bool yas/nah
+	 */
+	function isCertTrusted() {
+		return $this->trustCert;
 	}
 
 	/**
@@ -25,6 +43,11 @@ class Svn {
 	 * @return string          response
 	 */
 	function execute( $command, $url ) {
+		// is this an https connection, and do we trust it automatically?
+		if ( strncasecmp( $url, 'https', 5 ) === 0 && $this->isCertTrusted() ) {
+			// let svn trust the certificate without prompt
+			$command .= ' --non-interactive --trust-server-cert';
+		}
 		return $this->util->execute( "svn $command", $url );
 	}
 

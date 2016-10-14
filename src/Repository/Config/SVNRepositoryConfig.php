@@ -46,6 +46,8 @@ class SVNRepositoryConfig extends RepositoryConfig {
 		'cache-ttl' => 0,
 		// provider cache file
 		'cache-file' => 'providers.json',
+		// should the server cert be automatically trusted?
+		'trust-cert' => false,
 	];
 
 	/**

@@ -21,6 +21,7 @@ class WordPressVIP extends SVNRepositoryConfig {
 		'package-filter' => [ __CLASS__, 'filterPackage' ],
 		// cache for one week - these change infrequently
 		'cache-ttl' => 604800,
+		'trust-cert' => true,
 	];
 
 	static function filterProvider( $name, $path, $url ) {
