@@ -49,7 +49,7 @@ class SSHFilesystem extends RemoteFilesystem {
 			return $output;
 		} else {
 			// some sort of error - boo!
-			throw new \RuntimeException( "Could not download $fileUrl. " . $process->getErrorOutput() );
+			throw new \RuntimeException( "Could not download $fileUrl. " . $this->process->getErrorOutput() );
 		}
 	}
 
