@@ -96,7 +96,7 @@ class SVNRepository extends ComposerRepository {
 		return [];
 	}
 
-	public function search( $query, $mode = 0 ) {
+	public function search( $query, $mode = 0, $type = null ) {
 		// if the query exactly matches one of our vendors, return the whole list!
 		if ( isset( $this->vendors[ $query ] ) ) {
 			// make sure the vendor that shows is the vendor they want
